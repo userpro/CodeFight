@@ -1,7 +1,6 @@
 package eventQ
 
 import (
-    "fmt"
     "container/list"
 )
 
@@ -14,10 +13,6 @@ type EventQueue struct {
 type EventEle struct {
     Token string
     Value interface{} // ActionEvent
-}
-
-func init() {
-    fmt.Println("EventQueue")
 }
 
 func New() *EventQueue { return new(EventQueue) }

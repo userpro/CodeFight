@@ -1,12 +1,15 @@
 package net
 
 import (
-    "fmt"
+    // "fmt"
+    "log"
+    "os"
     "sync"
     "time"
     "net/http"
     "strconv"
     "strings"
+    "html/template"
 
     "database/sql"
     _ "github.com/go-sql-driver/mysql"
@@ -18,11 +21,14 @@ import (
 )
 
 var (
-    WSChannelMap sync.Map // map[roomtoken]*WSChannel
     eventQMap sync.Map // map[roomToken]*eventQ
     netToken  sync.Map // [userToken]*netUserInfo
     netOnline sync.Map // [username]bool
+    WSChannelMap sync.Map // map[roomtoken]*WSChannel
+
     dbw       DbWorker
+    netLogger *log.Logger
+    dbLogger  *log.Logger
 )
 
 // 登录后 未游戏时长超时
@@ -39,7 +45,7 @@ func loginTimeOut(utk string) {
         netOnline.Delete(v.(*netUserInfo).Uname)
         netToken.Delete(utk)
         fight.Logout(utk)
-        fmt.Println("loginTimeOutout")
+        netLogger.Println("loginTimeOutout")
         return
     }
 }
@@ -54,17 +60,18 @@ func register(c echo.Context) error {
     if pwd == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! Password can't empty.", Status:0}) }
     email := c.FormValue("email")
     if email == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! Email can't empty.", Status:0}) }
-    ok := dbw.queryData(uname, pwd)
+    ok := dbw.QueryData(uname, pwd)
     if ok {
         return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! Username have exist.", Status:0})
     }
-    dbw.insertData(uname, pwd, email)
+    dbw.InsertData(uname, pwd, email)
     return c.JSON(http.StatusOK, &RespInfo{ Message:"Register OK. Waiting for Review.", Status:1})
 }
 
 // QueryParam
 // Return Type: JSON
 // curl http://127.0.0.1:8080/user\?username\=hipro\&password\=okiamhi
+// Return Result: 0=>"failed"  1=>"ok"  2=>"have logined"
 func login(c echo.Context) error {
     /* 检查uname */
     uname := c.QueryParam("username")
@@ -78,18 +85,20 @@ func login(c echo.Context) error {
         return c.JSON(http.StatusOK, &RespInfo{ Message: "Login OK! You have login before.", Status:2})
     }
 
-    ok = dbw.queryData(uname, pwd)
+    ok = dbw.QueryData(uname, pwd)
     if ok {
         if dbw.UserInfo.Status == 0 {
             return c.JSON(http.StatusOK, &RespInfo{ Message:"Login Failed! Waiting for Review.", Status:0})
         }
+        // newUname, newPwd, newEmail, uname, pwd
+        dbw.UpdateData(uname, pwd, dbw.UserInfo.Email, uname, pwd)
         utk := fight.GenToken(uname + pwd) // usertoken
         // 维护token信息
         netToken.Store(utk, &netUserInfo {
             Uname: uname,
             UserToken: utk,
         })
-        // fmt.Println("[login] netToken: ", netToken[usertoken])
+        // netLogger.Println("[login] netToken: ", netToken[usertoken])
         // 维护在线状态
         netOnline.Store(uname, true)
         fight.Login(utk)
@@ -112,7 +121,7 @@ func login(c echo.Context) error {
 func logout(c echo.Context) error {
     utk := c.QueryParam("usertoken")
     if utk == "" { return c.NoContent(http.StatusNoContent) }
-    // fmt.Println("[logout] uname: ", netToken[utk])
+    // netLogger.Println("[logout] uname: ", netToken[utk])
     u, ok := netToken.Load(utk)
     if !ok { return c.NoContent(http.StatusNoContent) }
     /* 如果还没退出Room 则先移除事件队列中的相关项 */
@@ -159,16 +168,23 @@ func join(c echo.Context) error {
             nntk := ntk.(*netUserInfo)
             nntk.Id = id
             // 如果 room 人数已满 则开始
-            // fmt.Println(fight.IsStart(utk, rtk))
+            // netLogger.Println(fight.IsStart(utk, rtk))
             _, _, gameStart := fight.IsStart(utk, rtk)
             if gameStart {
-                fmt.Println("[Join] Started!")
+                netLogger.Println("[Join] Started!")
                 teq := eventQ.New()
                 eventQMap.Store(rtk, teq) // 绑定事件循环到roomtoken
                 // 加入websocket
                 wsc := fight.WSNew()
                 WSChannelMap.Store(rtk, wsc)
-                go fight.Run(rtk, teq, wsc)
+                // 启动游戏 开一个协程等待游戏结束
+                go func(rtk string, teq *eventQ.EventQueue, wsc *fight.WSChannel) {
+                    ch := fight.Run(rtk, teq, wsc)
+                    // 当游戏结束时 回收该房间eventQueue
+                    <- ch
+                    eventQMap.Delete(rtk)
+                    WSChannelMap.Delete(rtk)
+                }(rtk, teq, wsc)
             }
             return c.JSON(http.StatusOK, &netUserRet{
                 UserToken: utk,
@@ -194,7 +210,7 @@ func join(c echo.Context) error {
         // 如果 room 人数已满 则开始
         _, _, gameStart := fight.IsStart(utk, rtk)
         if gameStart {
-            // fmt.Println("[Join] Started!")
+            // netLogger.Println("[Join] Started!")
             teq := eventQ.New()
             eventQMap.Store(rtk, teq) // 绑定事件循环
             // websocket channel绑定
@@ -288,7 +304,7 @@ func move(c echo.Context) error {
     evq := _evq.(*eventQ.EventQueue)
 
     /* 添加event到eventQueue中 */
-    // fmt.Println("[net-Move] ", u)
+    // netLogger.Println("[net-Move] ", u)
     moveEve := fight.ActionMove{
         Radio: u.Radio,
         Direction: u.Direction,
@@ -377,7 +393,12 @@ func Run() {
     }
     defer dbw.Db.Close()
 
+    /* html/template render */
+    templateRenderer := &Template{
+    templates: template.Must(template.ParseGlob("public/*.html"))}
+
     e := echo.New()
+    e.Renderer = templateRenderer
     // e.Use(middleware.Logger())
     // e.Use(middleware.Recover())
     e.POST(  "/user", register)
@@ -396,7 +417,12 @@ func Run() {
     e.GET("/ws", wsocketView)
 
     e.GET("/", func(c echo.Context) error {
-        return c.String(http.StatusOK, "Hello World")
+        return c.Render(http.StatusOK, "index.html", "")
     })
     e.Logger.Fatal(e.Start(":8080"))
+}
+
+func init() {
+    netLogger = log.New(os.Stdout, "[net] ", log.Ldate | log.Ltime | log.Lshortfile)
+    dbLogger = log.New(os.Stdout, "[DB] ", log.Ldate | log.Ltime | log.Lshortfile)
 }

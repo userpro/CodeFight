@@ -2,6 +2,7 @@ import urllib.parse
 import requests
 import json
 import time
+import random
 
 class CodeWar(object):
     """docstring for CodeWar"""
@@ -43,12 +44,17 @@ class CodeWar(object):
             print('<Error>[login] ', _login['message'])
 
     # --* 加入或者创建房间 *--
-    def join(self, roomtoken=''):
+    def join(self, roomtoken='', playnum=1, row=30, col=30):
         data = {
             'usertoken': self.usertoken,
-            'playnum': 1
+            'playnum': 1,
+            'row': row,
+            'col': col
         }
-        if roomtoken != '': data['roomtoken'] = roomtoken
+        if roomtoken != '': 
+            data['roomtoken'] = roomtoken
+            del data['row']
+            del data['col']
 
         payload = urllib.parse.urlencode(data)
 
@@ -145,10 +151,14 @@ if __name__ == '__main__':
     email = 'test@test'
     url = '127.0.0.1'
     port = '8080'
+    # username1 = 'test'
+    # password1 = 'test'
+    # email1 = 'test'
 
     a = CodeWar(url, port, username, password, email)
+    # a.register()
     a.login()
-    a.join()
+    a.join(playnum=1, row=random.randint(10,30), col=random.randint(10,30))
     # 检测游戏是否开始
     while not a.isStart():
         time.sleep(1)
@@ -164,7 +174,7 @@ if __name__ == '__main__':
         # 策略
         res = a.query()
         time.sleep(3)
-        if dir > 4: 
+        if dir == 4: 
             dir = 1
         else: 
             dir = dir + 1

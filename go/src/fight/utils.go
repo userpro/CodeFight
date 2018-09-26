@@ -1,7 +1,6 @@
 package fight
 
 import (
-    "fmt"
     "encoding/hex"
     "math/rand"
     "crypto/md5"
@@ -23,9 +22,20 @@ func checkLoc(roomToken string, loc Point) bool {
     return loc.X>=0 && loc.X<opt.row && loc.Y>=0 && loc.Y<opt.col
 }
 
+// 获得合法radio
+func getFinalRadio(radio int) int {
+    switch radio {
+        case _all_:     return _all_
+        case _half_:    return _half_
+        case _quarter_: return _quarter_
+        default:        return _all_
+    }
+}
+
+
 // 游戏开始 生成地图 分配玩家
 func (fopt *fOpts) generator() bool {
-    fmt.Println("[generator] OK!")
+    fightLogger.Println("[generator] OK!")
     rand.Seed(time.Now().Unix())
     var mp fMap
 

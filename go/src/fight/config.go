@@ -2,6 +2,7 @@ package fight
 
 import "time"
 
+/* websocket 设置 */
 const (
     WS_CHANNEL_BUFFER_SIZE  = 20 // websocket channel buffer
     WSAction_mapinfo        = 1
@@ -11,6 +12,7 @@ const (
 )
 
 const (
+    /* 游戏设置 */
     Default_login_timeout = time.Hour * 1   // 登录有效时限 (hour)
     Default_room_timeout  = 3   // 房间等待时限 (s)
     Default_player_num  = 16    // 房间玩家数量

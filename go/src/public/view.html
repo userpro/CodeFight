@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <title>Code Fight ! ! !</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      height: 100%;
+      width: 100%;
+    }
+    canvas {
+      display: block;
+      background: #0DA;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="viewMap"></canvas>
+
+  <script>
+    var COLOR = 'lightblue';
+    var cvs = document.getElementById('viewMap');
+    var ctx = cvs.getContext('2d');
+    var GRID_SIZE = 50;
+    function resizeCanvas(row, col) {
+      cvs.width = GRID_SIZE * row;
+      cvs.height = GRID_SIZE * col;
+    }
+
+    function drawBoard(row, col) {
+      for (var i = 0; i < row; i++) {
+        for (var j = 0; j < col; j++) {
+          ctx.beginPath();
+          //边框颜色
+          ctx.strokeStyle = '#000';
+          ctx.fillStyle = COLOR;
+          ctx.fillRect(i*GRID_SIZE, j*GRID_SIZE, GRID_SIZE, GRID_SIZE);
+          ctx.strokeRect(i*GRID_SIZE, j*GRID_SIZE, GRID_SIZE, GRID_SIZE);
+          ctx.closePath();
+          }
+        }
+    }
+  </script>
+
+  <script>
+    let rtk = {{.}};
+    let loc = window.location;
+    let uri = 'ws:';
+
+    if (loc.protocol === 'https:') {
+      uri = 'wss:';
+    }
+    uri += '//' + loc.host;
+    uri += '/ws';
+
+    ws = new WebSocket(uri)
+
+    ws.onopen = function() {
+      console.log('Connected')
+      ws.send(rtk);
+    }
+
+    let flag = true;
+    ws.onmessage = function(evt) {
+      let recvData = JSON.parse(evt.data);
+      console.log(recvData);
+      if (flag) {
+        flag = false;
+        let row = recvData['value']['row'],
+            col = recvData['value']['col'];
+        resizeCanvas(row, col);
+        drawBoard(row, col);
+      }
+    }
+
+    // console.log(rtk)
+  </script>
+</body>
+
+</html>

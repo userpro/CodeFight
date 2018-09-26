@@ -10,10 +10,7 @@ import (
     "golang.org/x/net/websocket"
 
     fight "../fight"
-    viewTemplate "../view"
 )
-
-// type 
 
 // GET
 // QueryParam
@@ -23,7 +20,7 @@ func view(c echo.Context) error {
     if !ok {
         return c.HTML(http.StatusOK, "<h1>Not found room.</h1>")
     }
-    return c.HTML(http.StatusOK, viewTemplate.GetContent(rtk))
+    return c.Render(http.StatusOK, "view.html", rtk)
 }
 
 func wsocketView(c echo.Context) error {
@@ -63,13 +60,12 @@ func wsocketView(c echo.Context) error {
         wsc := _wsc.(*fight.WSChannel)
         ch := wsc.WSRegister(token)
 
-        // sendInfo := &RespInfo {
-        //     Message: "OK",
-        //     Status: 1,
-        // }
         for {
             sendData := <- ch
-            if sendData == nil { return }
+            if sendData == nil { 
+                // 已无数据发送 游戏结束
+                return 
+            }
             // fmt.Println("[wsocketView] ",sendData)
             // Write
             sendDataObj, sendDataErr := json.Marshal(sendData)
@@ -80,6 +76,8 @@ func wsocketView(c echo.Context) error {
             err = websocket.Message.Send(ws, string(sendDataObj))
             if err != nil {
                 c.Logger().Error(err)
+                // 发送数据失败 客户端关闭
+                wsc.WSCancel(token)
                 return
             }
 
