@@ -16,7 +16,7 @@ type (
     RoomOptRet struct {
         Row       int    `json:"row,omitempty"`
         Col       int    `json:"col,omitempty"`
-        Playnum   int    `json:"playnum,omitempty"`
+        Playernum   int    `json:"playernum,omitempty"`
     }
 
     netUserInfo struct {
@@ -54,7 +54,7 @@ type (
     }
 
     netQueryRet struct {
-        Eye       *fight.EyeShot `json:"eyeshot,omitempty"`
+        Eye       *fight.NetEyeShot `json:"eyeshot,omitempty"`
         RespInfo
     }
 
@@ -64,8 +64,8 @@ type (
         RespInfo
     }
 
-    netUserStatusRet struct {
-        Result int `json:"userstatus"`
+    netScoreBoardRet struct {
+        Result    *map[string]int `json:"scoreboard,omitempty"`
         RespInfo
     }
 )

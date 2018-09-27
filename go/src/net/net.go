@@ -8,7 +8,6 @@ import (
     "time"
     "net/http"
     "strconv"
-    "strings"
     "html/template"
 
     "database/sql"
@@ -73,6 +72,7 @@ func register(c echo.Context) error {
 // curl http://127.0.0.1:8080/user\?username\=hipro\&password\=okiamhi
 // Return Result: 0=>"failed"  1=>"ok"  2=>"have logined"
 func login(c echo.Context) error {
+    /* -- 权限检查 -- */
     /* 检查uname */
     uname := c.QueryParam("username")
     if uname == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! Username can't empty.", Status:0}) }
@@ -84,6 +84,7 @@ func login(c echo.Context) error {
     if ok {
         return c.JSON(http.StatusOK, &RespInfo{ Message: "Login OK! You have login before.", Status:2})
     }
+    /* -- 权限检查 -- */
 
     ok = dbw.QueryData(uname, pwd)
     if ok {
@@ -101,7 +102,7 @@ func login(c echo.Context) error {
         // netLogger.Println("[login] netToken: ", netToken[usertoken])
         // 维护在线状态
         netOnline.Store(uname, true)
-        fight.Login(utk)
+        fight.Login(utk, uname)
         // 设置登录失效超时
         go loginTimeOut(utk)
         return c.JSON(http.StatusOK, &netUserRet{
@@ -119,11 +120,13 @@ func login(c echo.Context) error {
 // Return Type: String
 // curl -v -X DELETE http://127.0.0.1:8080/user\?usertoken=...
 func logout(c echo.Context) error {
+    /* -- 权限检查 -- */
     utk := c.QueryParam("usertoken")
     if utk == "" { return c.NoContent(http.StatusNoContent) }
     // netLogger.Println("[logout] uname: ", netToken[utk])
     u, ok := netToken.Load(utk)
     if !ok { return c.NoContent(http.StatusNoContent) }
+    /* -- 权限检查 -- */
     /* 如果还没退出Room 则先移除事件队列中的相关项 */
     rtk := fight.GetRoom(utk)
     if rtk != "" { 
@@ -139,60 +142,73 @@ func logout(c echo.Context) error {
     return c.NoContent(http.StatusNoContent)
 }
 
+func gameBegin(rtk string) {
+    teq := eventQ.New()
+    eventQMap.Store(rtk, teq) // 绑定事件循环到roomtoken
+    // 加入websocket
+    wsc := fight.WSNew()
+    WSChannelMap.Store(rtk, wsc)
+    // 启动游戏 开一个协程等待游戏结束
+    go func(rtk string, teq *eventQ.EventQueue, wsc *fight.WSChannel) {
+        ch := fight.Run(rtk, teq, wsc)
+        // 当游戏结束时 回收该房间eventQueue
+        <- ch
+        netLogger.Println("Game End....")
+        eventQMap.Delete(rtk)
+        WSChannelMap.Delete(rtk)
+    }(rtk, teq, wsc) 
+}
+
 // Form Data
 // Return Type: JSON
-// curl -d "usertoken=...&playnum=..." http://127.0.0.1:8080/room
+// curl -d "usertoken=...&playernum=..." http://127.0.0.1:8080/room
 func join(c echo.Context) error {
+    /* -- 权限检查 -- */
     /* 检查usertoken */
     utk := c.FormValue("usertoken")
     if utk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! UserToken can't empty.", Status:0}) }
     ntk, ok := netToken.Load(utk)
     if !ok { return c.JSON(http.StatusUnauthorized, &RespInfo{ Message:"Failed! You haven't login!", Status:0 }) }
+    /* -- 权限检查 -- */
 
+    nntk := ntk.(*netUserInfo)
     /* 检查roomtoken */
     rtk := c.FormValue("roomtoken")
-    if rtk == "" {
-        /* 没有rtk 则新建room */
-        playnum, err := strconv.Atoi(c.FormValue("playnum"))
-        if err != nil { playnum = fight.Default_player_num }
+    if rtk == "" { /* 没有rtk 则新建room */
+        /* 校验参数 */
+        playernum, err := strconv.Atoi(c.FormValue("playernum"))
+        if err != nil { playernum = fight.Default_player_num }
+        if playernum > fight.Default_player_num { playernum = fight.Default_player_num }
         row, err := strconv.Atoi(c.FormValue("row"))
         if err != nil { row = fight.Default_row }
+        if row > fight.Default_row { row = fight.Default_row }
         col, err := strconv.Atoi(c.FormValue("col"))
         if err != nil { col = fight.Default_col }
-        msg ,ok := fight.NewRoom(utk, playnum, row, col)
-        if ok {
-            rtk = msg
-            id, ok := fight.GetUserId(utk)
-            if !ok { return c.JSON(http.StatusUnauthorized, &RespInfo{ Message:"Failed! You haven't login!", Status:0 }) }
-
-            nntk := ntk.(*netUserInfo)
+        if col > fight.Default_col { col = fight.Default_col }
+        /* 校验参数 */
+        
+        /* 创建房间 */
+        joindata, joinstatus, newroomok := fight.NewRoom(utk, playernum, row, col)
+        if newroomok {
+            id := joindata.(*fight.NetJoinRet).Uid
             nntk.Id = id
-            // 如果 room 人数已满 则开始
-            // netLogger.Println(fight.IsStart(utk, rtk))
-            _, _, gameStart := fight.IsStart(utk, rtk)
-            if gameStart {
+            rtk := joindata.(*fight.NetJoinRet).RoomToken
+
+            /* 如果NewRoom 返回 RM_playing_ 标志
+                表示 join 后立即开始 */
+            if joinstatus == fight.RM_playing_ {
                 netLogger.Println("[Join] Started!")
-                teq := eventQ.New()
-                eventQMap.Store(rtk, teq) // 绑定事件循环到roomtoken
-                // 加入websocket
-                wsc := fight.WSNew()
-                WSChannelMap.Store(rtk, wsc)
-                // 启动游戏 开一个协程等待游戏结束
-                go func(rtk string, teq *eventQ.EventQueue, wsc *fight.WSChannel) {
-                    ch := fight.Run(rtk, teq, wsc)
-                    // 当游戏结束时 回收该房间eventQueue
-                    <- ch
-                    eventQMap.Delete(rtk)
-                    WSChannelMap.Delete(rtk)
-                }(rtk, teq, wsc)
+                // 启动游戏
+                gameBegin(rtk)
             }
+            
             return c.JSON(http.StatusOK, &netUserRet{
                 UserToken: utk,
                 RoomToken: rtk,
                 RoomOptRet:  RoomOptRet {
                     Row: row,
                     Col: col,
-                    Playnum: playnum,
+                    Playernum: playernum,
                 },
                 RespInfo: RespInfo {
                     Message: "Join Room OK!",
@@ -201,45 +217,41 @@ func join(c echo.Context) error {
             }) 
         }
         // Join Failed
-        return c.JSON(http.StatusOK, &RespInfo{ Message:msg, Status:0 })
-    }
+        return c.JSON(http.StatusOK, &RespInfo{ Message:joindata.(string), Status:0 })
+    } else {
 
-    /* 有rtk 直接加入 */
-    msg, ok := fight.Join(utk, rtk)
-    if ok {
-        // 如果 room 人数已满 则开始
-        _, _, gameStart := fight.IsStart(utk, rtk)
-        if gameStart {
-            // netLogger.Println("[Join] Started!")
-            teq := eventQ.New()
-            eventQMap.Store(rtk, teq) // 绑定事件循环
-            // websocket channel绑定
-            _wsc, wscok := WSChannelMap.Load(rtk)
-            if !wscok { return c.JSON(http.StatusOK, &RespInfo{ Message:msg, Status:0 }) }
-            wsc := _wsc.(*fight.WSChannel)
-            go fight.Run(rtk, teq, wsc)
+        /* 有rtk 直接加入 */
+        joindata, joinstatus, joinok := fight.Join(utk, rtk)
+        if joinok {
+            // 如果 room 人数已满 则开始
+            if joinstatus == fight.RM_playing_ {
+                netLogger.Println("[Join] Started!")
+                // 游戏开始
+                gameBegin(rtk)
+            }
+
+            data := joindata.(*fight.NetJoinRet)
+            id := data.Uid
+            playernum := data.PlayerNum
+            row := data.Row
+            col := data.Col
+            nntk.Id = byte(id);
+            return c.JSON(http.StatusOK, &netUserRet{
+                UserToken: utk,
+                RoomToken: rtk,
+                RoomOptRet: RoomOptRet{
+                    Row: row,
+                    Col: col,
+                    Playernum: playernum,
+                },
+                RespInfo: RespInfo{ Status:1 },
+            })
         }
-
-        s := strings.Split(msg, ",")
-        id, _ := strconv.Atoi(s[0])
-        playnum, _ := strconv.Atoi(s[1])
-        row, _ := strconv.Atoi(s[2])
-        col, _ := strconv.Atoi(s[3])
-        nntk := ntk.(*netUserInfo)
-        nntk.Id = byte(id);
-        return c.JSON(http.StatusOK, &netUserRet{
-            UserToken: utk,
-            RoomToken: rtk,
-            RoomOptRet: RoomOptRet{
-                Row: row,
-                Col: col,
-                Playnum: playnum,
-            },
-            RespInfo: RespInfo{ Status:1 },
-        })
+        // Join Failed
+        return c.JSON(http.StatusOK, &RespInfo{ Message: joindata.(string), Status:0})
     }
     // Join Failed
-    return c.JSON(http.StatusOK, &RespInfo{ Message: msg, Status:0})
+    return c.JSON(http.StatusOK, &RespInfo{ Message: "Unknown Error!", Status:0})
 }
 
 // GET
@@ -253,6 +265,7 @@ func query(c echo.Context) error {
     u := &netQueryReq{}
     err := c.Bind(u)
     if err != nil { return err }
+    /* -- 权限检查 -- */
     /* 检查usertoken */
     utk := u.UserToken
     if utk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! UserToken can't empty.", Status:0}) }
@@ -263,9 +276,10 @@ func query(c echo.Context) error {
     /* 检查roomtoken */
     rtk := u.RoomToken
     if rtk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! RoomToken can't empty.", Status:0}) }
+    /* -- 权限检查 -- */
 
     /* 获取到eye */
-    eye, msg, ok := fight.GetEyeShot(u.UserToken, u.RoomToken, u.Loc)
+    eye, msg, ok := fight.GetNetEyeShot(u.UserToken, u.RoomToken, u.Loc)
     if !ok { return c.JSON(http.StatusUnauthorized, &RespInfo{ Message:msg, Status:0 }) }
 
     return c.JSON(http.StatusOK, &netQueryRet{ 
@@ -273,7 +287,6 @@ func query(c echo.Context) error {
         RespInfo: RespInfo{ Status:1 },
     })
 }
-
 
 // PUT
 // JSON
@@ -287,6 +300,7 @@ func move(c echo.Context) error {
     u := &netMoveReq{}
     err := c.Bind(u)
     if err != nil { return err }
+    /* -- 权限检查 -- */
     /* 检查usertoken */
     utk := u.UserToken
     if utk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! UserToken can't empty.", Status:0}) }
@@ -297,6 +311,7 @@ func move(c echo.Context) error {
     /* 检查roomtoken */
     rtk := u.RoomToken
     if rtk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! RoomToken can't empty.", Status:0}) }
+    /* -- 权限检查 -- */
     
     /* 获取到roomtoken的eventQueue */
     _evq, ok := eventQMap.Load(rtk)
@@ -326,20 +341,7 @@ func move(c echo.Context) error {
 // QueryParam
 // curl -v -X DELETE http://127.0.0.1:8080/room?usertoken=...&roomtoken=...
 func leave(c echo.Context) error {
-    utk := c.QueryParam("usertoken")
-    if utk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! Usertoken can't empty.", Status:0}) }
-    rtk := c.QueryParam("roomtoken")
-    if rtk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! Roomtoken can't empty.", Status:0}) }
-
-    msg, ok := fight.LeaveRoom(utk, rtk)
-    if !ok { return c.JSON(http.StatusOK, &RespInfo{ Message:msg, Status:0 }) }
-    return c.JSON(http.StatusOK, &RespInfo{ Message:msg, Status:1 })
-}
-
-// GET
-// QueryParam
-// curl http://127.0.0.1:8080/room/start?usertoken=...&roomtoken=...
-func isStart(c echo.Context) error {
+    /* -- 权限检查 -- */
     utk := c.QueryParam("usertoken")
     /* 检查usertoken */
     if utk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! UserToken can't empty.", Status:0}) }
@@ -350,6 +352,29 @@ func isStart(c echo.Context) error {
     /* 检查roomtoken */
     rtk := c.QueryParam("roomtoken")
     if rtk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! RoomToken can't empty.", Status:0}) }
+    /* -- 权限检查 -- */
+
+    msg, ok := fight.LeaveRoom(utk, rtk)
+    if !ok { return c.JSON(http.StatusOK, &RespInfo{ Message:msg, Status:0 }) }
+    return c.JSON(http.StatusOK, &RespInfo{ Message:msg, Status:1 })
+}
+
+// GET
+// QueryParam
+// curl http://127.0.0.1:8080/room/start?usertoken=...&roomtoken=...
+func isStart(c echo.Context) error {
+    /* -- 权限检查 -- */
+    utk := c.QueryParam("usertoken")
+    /* 检查usertoken */
+    if utk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! UserToken can't empty.", Status:0}) }
+    /* 检查是否在线 */
+    _, ok := netToken.Load(utk)
+    if !ok { return c.JSON(http.StatusUnauthorized, &RespInfo{ Message:"Failed! You haven't login!", Status:0 }) }
+
+    /* 检查roomtoken */
+    rtk := c.QueryParam("roomtoken")
+    if rtk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! RoomToken can't empty.", Status:0}) }
+    /* -- 权限检查 -- */
 
     x, y, ok := fight.IsStart(utk, rtk)
     if !ok { return c.JSON(http.StatusOK, &RespInfo{ Status:0 }) }
@@ -361,21 +386,16 @@ func isStart(c echo.Context) error {
 
 // GET
 // QueryParam
-// Return Status 
-/*
-    -1 => offline   0 => wait
-    1  => playing   2 => win    3 => lose
-*/
-func getStatus(c echo.Context) error {
-    utk := c.QueryParam("usertoken")
-    /* 检查usertoken */
-    if utk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! UserToken can't empty.", Status:0}) }
-    /* 检查是否在线 */
-    _, ok := netToken.Load(utk)
-    if !ok { return c.JSON(http.StatusUnauthorized, &RespInfo{ Message:"Failed! You haven't login!", Status:0 }) }
+func getScoreBoard(c echo.Context) error {
+    /* -- 权限检查 -- */
+    /* 检查roomtoken */
+    rtk := c.QueryParam("roomtoken")
+    if rtk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! RoomToken can't empty.", Status:0}) }
+    /* -- 权限检查 -- */
 
-    return c.JSON(http.StatusOK, &netUserStatusRet{ 
-        Result:fight.GetStatus(utk),
+    sb, _, _ := fight.GetScoreBoard(rtk)
+    return c.JSON(http.StatusOK, &netScoreBoardRet{ 
+        Result: sb,
         RespInfo: RespInfo { Status: 1 },
     })
 }
@@ -383,8 +403,11 @@ func getStatus(c echo.Context) error {
 
 func Run() {
     var err error
+    dbuser := "root"
+    dbpass := "123"
+    dbname := "CodeWar"
     dbw = DbWorker{
-        Dsn: "root:123@tcp(localhost:3306)/CodeWar?charset=utf8mb4&parseTime=true&loc=Local",
+        Dsn: dbuser + ":" + dbpass + "@tcp(localhost:3306)/" + dbname + "?charset=utf8mb4&parseTime=true&loc=Local",
     }
     dbw.Db, err = sql.Open("mysql", dbw.Dsn)
     if err != nil {
@@ -404,13 +427,13 @@ func Run() {
     e.POST(  "/user", register)
     e.GET(   "/user", login   )
     e.DELETE("/user", logout  )
-    e.GET("/user/status", getStatus)
 
     e.GET(   "/room", query   )
     e.POST(  "/room", join    )
     e.PUT(   "/room", move    )
     e.DELETE("/room", leave   )
-    e.GET("/room/start", isStart)
+    e.GET("/room/start",      isStart)
+    e.GET("/room/scoreboard", getScoreBoard)
 
     e.GET("/view/:roomtoken", view)
     // e.Static("/", "public")

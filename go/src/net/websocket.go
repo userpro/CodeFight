@@ -35,7 +35,7 @@ func wsocketView(c echo.Context) error {
         }
 
         // 获取该房间的基本信息 mapinfo userinfo
-        gameInfo := fight.GetGameInfo(rtk)
+        gameInfo := fight.WSGetGameInfo(rtk)
         if gameInfo == nil {
             websocket.Message.Send(ws, "StatusUnauthorized!")
             return

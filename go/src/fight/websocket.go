@@ -15,17 +15,18 @@ type (
     }
 
     WSUserInfoRet struct {
-        Uid    byte   `json:"id,omitempty"`
-        Utoken string `json:"token,omitempty"`
+        Uid    byte   `json:"id"`
+        Uname  string `json:"name"`
         Score  int    `json:"score,omitempty"`
         Energy int    `json:"energy,omitempty"`
         Status int    `json:"status,omitempty"`
     }
 
     WSPoint struct {
-        X int `json:"x"`
-        Y int `json:"y"`
-        W int `json:"w"`
+        X  int `json:"x"`
+        Y  int `json:"y"`
+        M1 int `json:"m1"`
+        M2 byte `json:"m2"`
     }
 
     WSChange struct {

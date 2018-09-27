@@ -6,36 +6,32 @@ import (
     "log"
     "time"
     "sync"
-    "strconv"
 
     eventQ "../event"
 )
 
 var (
-    fUserList sync.Map // map[userToken]fUser
-    fOptsList sync.Map // map[roomToken]fOpts
-    fMapList  sync.Map // map[roomToken]*fMap
+    fUserList sync.Map // map[userToken]*fUser
+    fOptsList sync.Map // map[roomToken]*fOpts
+    fScoreBoard sync.Map // map[roomtoken](*map[string]int)
     WSChannelMap sync.Map // [token]*chan WSAction
     fightLogger  *log.Logger
 )
 
-func NewRoom(userToken string, opts ...int) (string, bool) {
-    user, ok := getUser(userToken)
-    if !ok { return "You haven't login.", false }
-    if user.roomToken != "" { return user.roomToken, true }
-
-    roomToken := GenToken(userToken)
+func NewRoom(userToken string, params ...int) (interface{}, int, bool) {
+    _, ok := getUser(userToken)
+    if !ok { return "You haven't login.", Game_failed_response_, false }
 
     // 可定制参数: 游戏人数 战场size
     var tPlayerNum, trow, tcol int
-    if len(opts) == 1 {
-        tPlayerNum = opts[0]
+    if len(params) == 1 {
+        tPlayerNum = params[0]
         trow = Default_row
         tcol = Default_col
-    } else if len(opts) == 3 {
-        tPlayerNum = opts[0]
-        trow = opts[1]
-        tcol = opts[2]
+    } else if len(params) == 3 {
+        tPlayerNum = params[0]
+        trow = params[1]
+        tcol = params[2]
     } else {
         tPlayerNum = Default_player_num
         trow = Default_row
@@ -43,40 +39,33 @@ func NewRoom(userToken string, opts ...int) (string, bool) {
     }
 
     if tPlayerNum > Default_player_num || trow > Default_row || tcol > Default_col {
-        return "Size or player number out of limit!", false
+        return "Size or player number out of limit!", Game_failed_response_, false
     }
 
+    roomToken := GenToken(userToken)
     opt := &fOpts {
         accId: _visitor_ + 1,
         playerNum: tPlayerNum,
         row: trow,
         col: tcol,
         playing: false,
-        userToken: make(map[byte]*fUser),
+        userInfo:  make(map[byte]*fUser),
         roomToken: roomToken,
     }
 
     // 注册 room
     fOptsList.Store(roomToken, opt)
 
-    // 注册 user
-    fUserList.Store(userToken, &fUser {
-        id: _visitor_,
-        userToken: userToken,
-        score : 0,
-        energy: 0,
-    })
-
     // 房间创建者 自动加入
-    _, ok = Join(userToken, roomToken)
-    if !ok {
+    joindata, joinstatus, joinok := Join(userToken, roomToken)
+    if !joinok {
         fOptsList.Delete(roomToken)
         fUserList.Delete(userToken)
-        return "New Room Failed!", false
+        return "New Room Failed!", Game_failed_response_, false
     }
     // fightLogger.Println(getOpts(roomToken))
 
-    return roomToken, true
+    return joindata, joinstatus, true
 }
 
 func LeaveRoom(userToken, roomToken string) (string, bool) {
@@ -84,59 +73,38 @@ func LeaveRoom(userToken, roomToken string) (string, bool) {
     if !ok1 { return "You haven't login.", false }
     opt, ok2 := getOpts(roomToken)
     if !ok2 { return "Not found room.", false}
-    delete(opt.userToken, user.id)
-    // 一个 room 没有 player 的时候, 回收 room.
-    if len(opt.userToken) == 0 {
-        fightLogger.Println("[LeaveRoom] Destroy! ")
-        fMapList.Delete(roomToken)
-        fOptsList.Delete(roomToken)
-    }
-    // 更新 User 信息
-    user.id = _visitor_
-    user.roomToken = ""
-    user.score = 0
-    user.energy = 0
-    // user.status = US_wait_ // 不修改 在join的时候会自动修改
+    opt.leave(user)
     return "Leave.", true
 }
 
-func Join(userToken, roomToken string) (string, bool) {
+func Join(userToken, roomToken string) (interface{}, int, bool) {
     user, ok1 := getUser(userToken)
-    if !ok1 { return "You haven't login.", false }
-    if user.roomToken == roomToken { return "You have in it.", true }
+    if !ok1 { return nil, US_offline_, false }
     opt, ok2 := getOpts(roomToken)
-    if !ok2 { return "Not found room.", false }
-    if opt.playing == true { return "The room is playing.", false }
-    if len(opt.userToken) >= opt.playerNum { return "The room is full.", false }
-
-    user.id = opt.accId
-    user.roomToken = roomToken
-    user.score = 0; user.energy = 0
-
-    opt.userToken[opt.accId] = user
-    opt.accId++
-
-    /* 人数满足 游戏开始 */
-    if len(opt.userToken) == opt.playerNum { 
-        ok := opt.generator() 
-        if !ok { fightLogger.Println("[Join] generator Failed.") }
-        opt.playing = true
-        for _, v := range opt.userToken {
-            v.status = US_playing_
-            v.score = 1 // 初始时 只有一个base
-        }
+    if !ok2 { return nil, RM_not_found_, false }
+    
+    status, joinok := opt.join(user)
+    if joinok {
+        return &NetJoinRet{
+            Uid: user.id,
+            PlayerNum: opt.playerNum,
+            Row: opt.row,
+            Col: opt.col,
+            RoomToken: roomToken,
+        },  status, true
     }
-    // id, playerNum, row, col
-    return strconv.Itoa(int(user.id)) + "," + strconv.Itoa(opt.playerNum) + "," + strconv.Itoa(opt.row) + "," + strconv.Itoa(opt.col), true
+
+    return nil, status, false
 }
 
-func Login(userToken string) (string, bool) {
+func Login(userToken, userName string) (string, bool) {
     fUserList.Store(userToken, &fUser{
         id: _visitor_,
+        userName:  userName,
         userToken: userToken,
         score : 0,
         energy: 0,
-        status: US_wait_,
+        status: US_online_,
     })
     return userToken, true
 }
@@ -163,79 +131,38 @@ func GetRoom(userToken string) string {
     return user.roomToken
 }
 
-func GetGameInfo(roomToken string) *WSAction {
+func GetScoreBoard(roomToken string) (*map[string]int, int, bool) {
     opt, ok := getOpts(roomToken)
-    if !ok { return nil }
-    mm, ok := getMap(roomToken)
-    if !ok { return nil }
-    u := &WSMapInfoRet {
-        Row: opt.row,
-        Col: opt.col,
-        RoomToken: opt.roomToken,
-        M1:  &mm.m1,
-        M2:  &mm.m2,
+    if !ok { 
+        sb, sbok := fScoreBoard.Load(roomToken)
+        if sbok == true { return sb.(*map[string]int), Game_success_response_, true }
+        return nil, RM_not_found_, false 
     }
-    for k, v := range opt.userToken {
-        u.UserInfo = append(u.UserInfo, &WSUserInfoRet{
-            Uid: k,
-            Utoken: v.userToken,
-            Score: v.score,
-            Energy: v.energy,
-            Status: v.status,
-        })
+    sb := make(map[string]int)
+    for _, v := range opt.userInfo {
+        sb[v.userName] = v.score;
     }
-    return &WSAction{
-        Typ: WSAction_mapinfo,
-        Value: u,
-    }
-    // return &mm.m1, &mm.m2
+    return &sb, Game_success_response_, true
 }
 
-func GetStatus(userToken string) int {
-    user, ok := getUser(userToken)
-    if !ok { return US_offline_ }
-    return user.status
-}
-
-func GetEyeShot(userToken, roomToken string, loc Point) (*EyeShot, string, bool) {
-    if !checkLoc(roomToken, loc) { return &EyeShot{}, "Invalid Point!", false }
+func GetNetEyeShot(userToken, roomToken string, loc Point) (*NetEyeShot, string, bool) {
     user, ok1 := getUser(userToken);
-    if !ok1 { return &EyeShot{}, "You haven't login!", false }
+    if !ok1 { return nil, "You haven't login!", false }
     opt, ok2 := getOpts(user.roomToken)
-    if !ok2 { return &EyeShot{}, "Not found room!", false }
-    if !isPlaying(opt) { return &EyeShot{}, "Game is not start!", false }
-    mm, ok3 := getMap(user.roomToken)
-    if !ok3 { return &EyeShot{}, "Not found map!", false }
+    if !ok2 { return nil, "Not found room!", false }
+    if !isPlaying(opt) { return nil, "Game is not start!", false }
+    
+    v, status, eyeok := opt.eyeshot(user, &fPoint{ x:loc.X, y:loc.Y })
 
-    // fightLogger.Println("[GetEyeShot] x:",loc.X, " y:",loc.Y)
-    // fightLogger.Println("[GetEyeShot] userid: ",user.id, " cellid: ",getUserId(mm.m2[loc.X][loc.Y]))
-
-    if user.id != getUserId(mm.m2[loc.X][loc.Y]) { return &EyeShot{}, "Not belong to you!", false }
-
-    v := &EyeShot{}
-    ltx := loc.X - default_eye_level
-    lty := loc.Y - default_eye_level
-    lth := default_eye_level * 2 + 1
-    for i:=0; i<lth; i++ {
-        for j:=0; j<lth; j++ {
-            cx := ltx + i
-            cy := lty + j
-            if (cx < 0 || cy < 0 || cx >= opt.row || cy >= opt.col) {
-                v.M1[i][j]=-1;
-            } else {
-                v.M1[i][j]=mm.m1[cx][cy]
-                v.M2[i][j]=mm.m2[cx][cy]
-            }
-        }
+    if eyeok == true {
+        return v, "OK", true
+    } else if status == Game_invalid_point_ {
+        return nil, "Invalid Point!", false
     }
-    return v, "OK", true
+    return nil, "Unknown Error!", false
 }
 
 func Move(userToken, roomToken string, direction, radio int, loc Point) (*fPoint, *fPoint, bool) {
-    if !checkLoc(roomToken, loc) { 
-        fightLogger.Println("[Move] Invalid Point!")
-        return nil,nil,false 
-    }
     user, ok1 := getUser(userToken)
     if !ok1 { 
         fightLogger.Println("[Move] You haven't login!")
@@ -250,106 +177,12 @@ func Move(userToken, roomToken string, direction, radio int, loc Point) (*fPoint
         fightLogger.Println("[Move] Game is not playing!")
         return nil,nil,false 
     }
-    mm, ok3 := getMap(roomToken)
-    if !ok3 { 
-        fightLogger.Println("[Move] Not found map!")
-        return nil,nil,false 
-    }
 
-    x := loc.X; y := loc.Y
-    cell1 := mm.m2[x][y]
-    uid  := getUserId(cell1)
-    if uid != user.id { 
-        fightLogger.Println("[Move] Not belong to you!")
-        return nil,nil,false 
+    src, dest, moveok := opt.move(user, direction, radio, &fPoint{ x:loc.X, y:loc.Y })
+    if moveok {
+        return src, dest, true
     }
-    if isBarrier(cell1) { 
-        fightLogger.Println("[Move] Can't move from!")
-        return nil,nil,false 
-    }
-    if mm.m1[x][y] <= 1 { 
-        fightLogger.Println("[Move] Don't have enough army!")
-        return nil,nil,false 
-    }
-
-    finalRadio := getFinalRadio(radio)
-
-    var nx, ny int
-    switch direction {
-        case _top_:     nx = x - 1; ny = y
-        case _right_:   nx = x;     ny = y + 1
-        case _bottom_:  nx = x + 1; ny = y
-        case _left_:    nx = x;     ny = y - 1
-        default: 
-            fightLogger.Println("[Move] Invalid direction!")
-            return nil,nil,false
-    }
-    if !checkLoc(roomToken, Point{nx,ny}) { 
-        fightLogger.Println("[Move] Invalid next Point!")
-        return nil,nil,false 
-    }
-    // 将要进入的cell的type
-    cell2 := mm.m2[nx][ny]
-    if isBarrier(cell2) { 
-        fightLogger.Println("[Move] Can't move to!")
-        return nil,nil,false 
-    }
-
-    // fightLogger.Println("[move] x:",x," y:",y," nx:",nx," ny:",ny)
-
-    // 军队调出{x, y}
-    var t1 int
-    switch finalRadio {
-        case _all_:     t1 = mm.m1[x][y] - 1
-        case _half_:    t1 = mm.m1[x][y] / 2
-        case _quarter_: t1 = mm.m1[nx][ny] / 4
-    }
-    
-    mm.m1[x][y] -= t1
-    /* 领地内调动 */
-    uid = getUserId(cell2)
-    if user.id == uid {
-        mm.m1[nx][ny] += t1
-    } else {
-        /* 敌对领域 attack */
-        t2 := mm.m1[nx][ny]
-        // portal 防御提升
-        if isPortal(cell2) { t2 = int(float32(t2) * default_portal_factor) }
-
-        // 成功占领
-        if t1 >= t2 {
-            t1 -= t2
-            if t1 == 0 { t1 = 1 }
-
-            mm.m1[nx][ny] = t1
-            mm.m2[nx][ny] = setCellId(cell2, user.id)
-
-            // 更新自己score
-            user.score++;
-            // 如果是_system_不需要判断之后
-            if isSystem(cell2) {
-                return &fPoint{x:x,y:y,w:mm.m1[x][y]},&fPoint{x:nx,y:ny,w:mm.m1[nx][ny]},true
-            }
-            // 更新敌人score
-            opt.userToken[uid].score--
-
-            if isBase(cell2) { // base
-                uid := getUserId(cell2)
-                utk := opt.userToken[uid].userToken
-                usr, _ := getUser(utk)
-                someOneGameOver(usr, opt, mm)
-                mm.removeBase(Point{nx,ny})
-            } else if isPortal(cell2) { // portal
-                mm.m2[nx][ny] = setCellType(cell2, _space_)
-                mm.removePortal(Point{nx,ny})
-            }
-        } else {
-            // 消耗
-            mm.m1[nx][ny] -= int(float32(t1) / default_portal_factor)
-        }
-    }
-    // fightLogger.Println("[move] m1[xy]: ",mm.m1[x][y], " m1[nxny]: ",mm.m1[nx][ny])
-    return &fPoint{x:x,y:y,w:mm.m1[x][y]},&fPoint{x:nx,y:ny,w:mm.m1[nx][ny]},true
+    return nil, nil, false
 }
 
 
@@ -362,11 +195,11 @@ func doIt(roomToken string, actions []eventQ.EventEle, wsActions *WSAction) {
         case Action_move_:
             // fightLogger.Println("[doIt] Move ", v.Token)
             aMove := ac.Ac.(ActionMove)
-            p1, p2, moveok := Move(v.Token, roomToken, aMove.Direction, getFinalRadio(aMove.Radio), aMove.Loc)
+            p1, p2, moveok := Move(v.Token, roomToken, aMove.Direction, aMove.Radio, aMove.Loc)
             if !moveok { continue }
             
-            wsChange.Loc = append(wsChange.Loc, &WSPoint{ X: p1.x, Y:p1.y, W:p1.w })
-            wsChange.Loc = append(wsChange.Loc, &WSPoint{ X: p2.x, Y:p2.y, W:p2.w })
+            wsChange.Loc = append(wsChange.Loc, &WSPoint{ X: p1.x, Y:p1.y, M1:p1.m1, M2:p1.m2 })
+            wsChange.Loc = append(wsChange.Loc, &WSPoint{ X: p2.x, Y:p2.y, M1:p2.m1, M2:p2.m2 })
 
         // case Action_magic_:
         //     fightLogger.Println("[doIt] Magic ", v.Token)
@@ -380,14 +213,14 @@ func doIt(roomToken string, actions []eventQ.EventEle, wsActions *WSAction) {
 
 // Return Result: 0=>"failed"  1=>"end"
 func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
+    fightLogger.Println("Run")
     opt, ok1 := getOpts(roomToken)
     if !ok1 { return nil }
-    mm, ok2  := getMap(roomToken)
-    if !ok2 { return nil }
+    mm := opt.m
 
     // 设置eventQueue
     var tokens []string
-    for _, v := range(opt.userToken) {
+    for _, v := range(opt.userInfo) {
         tokens = append(tokens, v.userToken)
     }
     eq.Initialize(tokens)
@@ -458,18 +291,18 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
             select {
             case <-playTimer.C:
                 fightLogger.Println("[Run] Game End!")
-                var winner *fUser
-                winner = nil
-                mxScore := 0
-                for _, v := range(opt.userToken) {
-                    if v.score > mxScore {
-                        mxScore = v.score
-                        if winner != nil { winner.status = US_lose_ }
-                        winner = v
-                    }
+                /* 保留最终榜单 */
+                sb, _, _ := GetScoreBoard(roomToken)
+                fScoreBoard.Store(roomToken, sb)
+                go func(rtk string) {
+                    <- time.After(ScoreBoardKeepTime)
+                    fScoreBoard.Delete(rtk)
+                }(roomToken)
+                /* 退出所有玩家 */
+                for _, v := range(opt.userInfo) {
+                    v.status = US_waiting_
                     LeaveRoom(v.userToken, roomToken)
                 }
-                winner.status = US_win_
                 // 清空事件队列
                 eq.Clear()
                 gameEnd <- true
@@ -481,6 +314,33 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
     }(roomToken, playTimer, actionTimer, eq, ws, gameEnd)
    
     return gameEnd
+}
+
+func WSGetGameInfo(roomToken string) *WSAction {
+    opt, ok := getOpts(roomToken)
+    if !ok { return nil }
+    mm := opt.m
+    u := &WSMapInfoRet {
+        Row: opt.row,
+        Col: opt.col,
+        RoomToken: opt.roomToken,
+        M1:  &mm.m1,
+        M2:  &mm.m2,
+    }
+    for k, v := range opt.userInfo {
+        u.UserInfo = append(u.UserInfo, &WSUserInfoRet{
+            Uid: k,
+            Uname: v.userName,
+            Score: v.score,
+            Energy: v.energy,
+            Status: v.status,
+        })
+        // fightLogger.Println(v.userName)
+    }
+    return &WSAction{
+        Typ: WSAction_mapinfo,
+        Value: u,
+    }
 }
 
 func init() {

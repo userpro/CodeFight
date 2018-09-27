@@ -4,7 +4,7 @@ import (
     "container/list"
 )
 
-const default_action_length = 100
+const default_action_length = 100 // 操作序列最大长度
 
 type EventQueue struct { 
     e map[string]*list.List // [token]eventlist
