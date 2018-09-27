@@ -16,13 +16,13 @@ go:
 	github.com/go-sql-driver/mysql
 python:
 	requests
- 	(如果想用Chrome打开查看, Windows可能需要设置代码里example.py:150 chromepath变量的值)
+ 	(如果想用Chrome打开查看, Windows可能需要设置代码里 gameUser1.py:7 chromepath变量的值)
 ```
 
 ##### 数据库
 
 ```html
-修改 go/src/net/net.go:391-393 为本地数据库信息
+修改 go/src/net/net.go:406-408 为本地数据库信息
 数据库结构:
 	表名 userinfo
 	id(主键)		   int(11) 			AUTO_INCREMENT
