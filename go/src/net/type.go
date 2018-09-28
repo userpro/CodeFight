@@ -36,7 +36,7 @@ type (
 
     netMoveReq struct {
         UserToken string `json:"usertoken"`
-        RoomToken string `json:roomtoken"`
+        RoomToken string `json:"roomtoken"`
         Radio     int    `json:"radio"`
         Direction int    `json:"direction"`
         Loc fight.Point  `json:"loc"`

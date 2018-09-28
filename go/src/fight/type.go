@@ -54,8 +54,8 @@ type (
     }
 
     NetEyeShot struct {
-        M1 [default_eye_level * 2 + 1][default_eye_level * 2 + 1]int
-        M2 [default_eye_level * 2 + 1][default_eye_level * 2 + 1]byte
+        M1 [default_eye_level * 2 + 1][default_eye_level * 2 + 1]int   `json:"m1"`
+        M2 [default_eye_level * 2 + 1][default_eye_level * 2 + 1]byte  `json:"m2"`
     }
     /* net */
 )

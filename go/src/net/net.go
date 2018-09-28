@@ -129,13 +129,16 @@ func logout(c echo.Context) error {
     u, ok := netToken.Load(utk)
     if !ok { return c.NoContent(http.StatusNoContent) }
     /* -- 权限检查 -- */
+    
     /* 如果还没退出Room 则先移除事件队列中的相关项 */
     rtk := fight.GetRoom(utk)
     if rtk != "" { 
+        fight.LeaveRoom(utk, rtk)
+        /* 清除eventQ中的相应项 */
         _evq, ok := eventQMap.Load(rtk)
         evq := _evq.(*eventQ.EventQueue)
         if ok { evq.Remove(utk) }
-        eventQMap.Delete(rtk)
+        if evq.Empty() { eventQMap.Delete(rtk) }
     }
 
     fight.Logout(utk)
@@ -357,6 +360,12 @@ func leave(c echo.Context) error {
     /* -- 权限检查 -- */
 
     msg, ok := fight.LeaveRoom(utk, rtk)
+    /* 清除eventQ中的相应项 */
+    _evq, ok := eventQMap.Load(rtk)
+    evq := _evq.(*eventQ.EventQueue)
+    if ok { evq.Remove(utk) }
+    if evq.Empty() { eventQMap.Delete(rtk) }
+
     if !ok { return c.JSON(http.StatusOK, &RespInfo{ Message:msg, Status:0 }) }
     return c.JSON(http.StatusOK, &RespInfo{ Message:msg, Status:1 })
 }

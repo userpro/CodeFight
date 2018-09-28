@@ -1,22 +1,13 @@
 # CodeFight
-Go fight!
 
-文档后补 (咕咕咕咕...
+### 注意
 
-### HTTP 接口
+因文档更新并不十分及时, 若文档与代码有出入, 以代码为准. (咕咕咕咕...
 
-    e.POST(  "/user", register)
-    e.GET(   "/user", login   )
-    e.DELETE("/user", logout  )
-    
-    e.GET(   "/room", query   )
-    e.POST(  "/room", join    )
-    e.PUT(   "/room", move    )
-    e.DELETE("/room", leave   )
-    e.GET("/room/start",      isStart)
-    e.GET("/room/scoreboard", getScoreBoard)
-    
-    e.GET("/view/:roomtoken", view)
+### 游戏介绍
+
+简单的代码操作兵力对战游戏, 受到  [generals.io]() 以及知乎上 Color Fight 启发 , 不同的是这是为支持脚本对战的版本.  Go fight! 
+
 ### 如何测试/运行
 
 ##### 依赖
@@ -29,7 +20,7 @@ go:(可能需要翻墙)
 	go get golang.org/x/net/websocket
 python:
 	pip3 install requests
- 	(如果想用Chrome打开查看, Windows可能需要设置代码里 gamePlayer1.py:11 chromepath变量的值)
+ 	(如果想用Chrome打开前端展示页面, Windows可能需要设置代码里 gamePlayer1.py:11 chromepath变量的值)
 ```
 
 ##### 数据库
@@ -57,7 +48,11 @@ python3 gamePlayer1.py
 # 如果需要启动多个 player 测试, 修改 gamePlayer1.py:6 的 playernum 数量和 gamePlayer2.py:9 的roomtoken(需要先启动 gamePlayer1.py 获得)
 ```
 
+### 如何编写自己的Bot
 
+参考 go/src/CodeWar/Utils.py 简单将API封装了一个 class , 简单的主体框架可参考 go/src/gamePlayer1.py
+
+更多游戏环境参数的设置在 go/src/fight/config.go 中
 
 ### Map
 
@@ -75,7 +70,7 @@ m2 存放Cell类型 (低8位有效)
 每个Cell Type唯一 不会重叠
 */
 _space_   = 0x00 // 000- ----  空地
-_base_    = 0x20 // 001- ----  基地(一个玩家仅一个)  
+_base_    = 0x20 // 001- ----  基地(一个玩家仅一个, 即初始位置)  
 _barback_ = 0x40 // 010- ----  军营(一个地图有随机个, 需要抢占, 每回合可加一个单位兵力)
 _portal_  = 0x60 // 011- ----  据点(一个地图有随机个, 需要抢占, 兵力在里面可提高防御力)
 _barrier_ = 0x80 // 100- ----  障碍(不可经过, 不可占领)
@@ -86,19 +81,151 @@ _visitor_ = 0x01 // ---- -001  玩家默认id(加入游戏后, 玩家id会从此
 
 _user_mask_ = 0x1f // 0001 1111
 _type_mask_ = 0xe0 // 1110 0000
+
 ```
 
+### HTTP 接口
 
+保证每个返回值都一定会有 message 和 status 两项
+
+无特殊说明 status 返回 1 是成功, 0 是失败. (失败原因在 message 里)
+
+注意: 优先判断 status , 在 status 为 0 时, 其他 json key 不一定存在 ( message 一定存在)
+
+##### API 一览
+
+```go
+e.POST(  "/user", register)
+e.GET(   "/user", login   )
+e.DELETE("/user", logout  )
+
+e.GET(   "/room", query   )
+e.POST(  "/room", join    )
+e.PUT(   "/room", move    )
+e.DELETE("/room", leave   )
+e.GET("/room/start",      isStart)
+e.GET("/room/scoreboard", getScoreBoard)
+```
+
+##### 玩家相关
+
+###### register
+
+| 名称       | 说明                                                        |
+| ---------- | ----------------------------------------------------------- |
+| 功能       | 注册( register )                                            |
+| 请求方法   | POST                                                        |
+| URL        | /user                                                       |
+| 参数       | username=XXX&password=XXX&email=XXX                         |
+| 示例       | /user?username=hi&password=pro&email=abc@d.com              |
+| 返回值     | { <br />    "message": "XXX",<br />     "status": 1<br /> } |
+| 返回值说明 | status 为 1 仅表示信息注册成功, 需要审核通过才可以登录.     |
+
+###### login
+
+| 名称       | 说明                                                         |
+| ---------- | ------------------------------------------------------------ |
+| 功能       | 登录 ( login )                                               |
+| 请求方法   | GET                                                          |
+| URL        | /user                                                        |
+| 参数       | username=XXX&password=XXX                                    |
+| 示例       | /user?username=hi&password=pro                               |
+| 返回值     | { <br />     "usertoken": "XXXX",<br />     "message": "XXX",<br />     "status": 1 <br /> } |
+| 返回值说明 | 仅 status 为 1 时, 才会有 usertoken 项, 表示登录成功<br />当 status 为 2 时, 表示已经登录过, 为在线状态 |
+
+###### logout
+
+| 名称     | 说明                              |
+| -------- | --------------------------------- |
+| 功能     | 登出 (logout)                     |
+| 请求方法 | DELETE                            |
+| URL      | /user                             |
+| 参数     | usertoken=XXX                     |
+| 示例     | /user?usertoken=XXX               |
+| 返回值   | 无 ( HTTP状态码为 NoContent 204 ) |
+
+##### 房间相关
+
+###### join
+
+| 名称       | 说明                                                         |
+| ---------- | ------------------------------------------------------------ |
+| 功能       | 加入或者创建房间 ( join )                                    |
+| 请求方法   | POST                                                         |
+| URL        | /room                                                        |
+| 参数       | 加入房间:<br />roomtoken=XXX<br />创建房间:<br />playernum=X&row=X&col=X |
+| 示例       | 加入房间:<br />/room?roomtoken=XXXX<br />创建房间:<br />/room?playernum=X&row=X&col=X |
+| 返回值     | {<br />    "usertoken": "XXX",<br />    "roomtoken": "XXX",<br />    "playernum": "XXX",<br />    "row": XX,<br />    "col":XX,<br />    "message": "XXX",<br />    "status": X<br />} |
+| 返回值说明 | 返回所加入房间的信息                                         |
+
+###### leave
+
+
+| 名称     | 说明                                                     |
+| -------- | -------------------------------------------------------- |
+| 功能     | 离开房间 (leave)                                         |
+| 请求方法 | DELETE                                                   |
+| URL      | /room                                                    |
+| 参数     | usertoken=XXX                                            |
+| 示例     | /room?usertoken=XXX                                      |
+| 返回值   | {<br />    "message": "XXX",<br />    "status": 1<br />} |
+
+###### query
+
+| 名称       | 说明                                                         |
+| ---------- | ------------------------------------------------------------ |
+| 功能       | 查询游戏中对应 Cell 周围的信息  (query)                      |
+| 请求方法   | GET                                                          |
+| URL        | /room                                                        |
+| 参数       | {<br />    "usertoken": "XXX",<br />    "roomtoken": "XXX",<br />    "loc": {<br />        "x": 1,<br />        "y": 3<br />    }<br />} |
+| 返回值     | {<br />    "eyeshot": {<br />        "m1": \[n\]\[n\],<br />        "m2": \[n\]\[n\]<br />    },<br />    "status": 1<br />} |
+| 返回值说明 | m1 m2 分别指代地图的两个图层, size 一致, <br />标示了以 (x, y) 为中心的一个矩阵的视野,<br />具体矩阵的大小以实际返回为准, 可能会有调整,<br />对于超出地图的部分的值在m1中以 -1 填充 |
+
+###### move
+
+| 名称       | 说明                                                         |
+| ---------- | ------------------------------------------------------------ |
+| 功能       | 移动地图上指定 Cell 的兵力 (move)                            |
+| 请求方法   | PUT                                                          |
+| URL        | /room                                                        |
+| 参数       | {<br />    "usertoken": "XXX",<br />    "roomtoken": "XXX",<br />    "radio": 1,<br />    "direction": 1,<br />    "loc": {<br />        "x": 1,<br />        "y": 2<br />    }<br />} |
+| 参数说明   | radio:<br />    1 -> all 调动 (x, y)  所有兵力<br />    2 -> half 调动 (x, y)  1/2的兵力<br />    3 -> quarter 调动 (x, y)  1/4的兵力<br />direction:<br />    1 -> (x, y) => (x - 1, y)<br />    2 -> (x, y) => (x, y + 1)<br />    3 -> (x, y) => (x + 1, y)<br />    4 -> (x, y) => (x, y - 1)<br />注意: loc的 (x, y) 必须是属于你的 Cell 才能查询 |
+| 返回值     | {<br />    "length": 1,<br />    "status": 1<br />}          |
+| 返回值说明 | length 是目前操作序列的长度                                  |
+
+###### isStart
+
+| 名称       | 说明                                                         |
+| ---------- | ------------------------------------------------------------ |
+| 功能       | 查询游戏是否开始 (isStart)                                   |
+| 请求方法   | GET                                                          |
+| URL        | /room/start                                                  |
+| 参数       | usertoken=XXX&roomtoken=XXX                                  |
+| 示例       | /room/start?usertoken=XXX&roomtoken=XXX                      |
+| 返回值     | {<br />    "x": 1,<br />    "y": 2,<br />    "status": 1<br />} |
+| 返回值说明 | x, y 为你初始坐标, 也是你的Base坐标<br /> (注意 x y 仅当 status 为 1 时存在) |
+
+###### getScoreBoard
+
+| 名称       | 说明                                                         |
+| ---------- | ------------------------------------------------------------ |
+| 功能       | 获取当前房间内所有玩家的得分详情 <br />(getScoreBoard)       |
+| 请求方法   | GET                                                          |
+| URL        | /room/scoreboard                                             |
+| 参数       | roomtoken=XXX                                                |
+| 示例       | /room/scoreboard?roomtoken=XXX                               |
+| 返回值     | {<br />    "scoreboard": {<br />        "username1": score1,<br />        "username2": score2,<br />        ....<br />    },<br />    "status": 1<br />} |
+| 返回值说明 | scoreboard 是一个用户名和其得分的键值对<br />(注意: 请不要频繁调用, 会拖慢游戏进程) |
 
 ### Webscoket
 
 路径: go/src/public/view.html
 
-仅前端展示页面的数据接口, 可定制自己的前端展示页面.
+仅前端展示页面的数据接口, 可定制自己的前端展示页面 (直接替换view.html, 不要改动文件名).
 
 流程如下:
 
-1. 客户端 send => roomtoken到服务器
+1. 客户端 send => roomtoken到服务器 (注意 token 是通过模版标签嵌入到页面的)
 2. 客户端 receive <=游戏基本信息A( json格式数据)
 3. 客户端 receive <= 每次操作B( json格式数据)
 

@@ -272,7 +272,6 @@ func (opt *fOpts) leave(user *fUser) {
 }
 
 
-
 func checkLoc(opt *fOpts, loc *fPoint) bool {
     if opt.playing == false { return false }
     return loc.x>=0 && loc.x<opt.row && loc.y>=0 && loc.y<opt.col

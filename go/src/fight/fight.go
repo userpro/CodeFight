@@ -14,6 +14,7 @@ var (
     fUserList sync.Map // map[userToken]*fUser
     fOptsList sync.Map // map[roomToken]*fOpts
     fScoreBoard sync.Map // map[roomtoken](*map[string]int)
+    fQueryCount sync.Map // map[usertoken]int
     WSChannelMap sync.Map // [token]*chan WSAction
     fightLogger  *log.Logger
 )
@@ -145,6 +146,12 @@ func GetNetEyeShot(userToken, roomToken string, loc Point) (*NetEyeShot, string,
     opt, ok2 := getOpts(user.roomToken)
     if !ok2 { return nil, "Not found room!", false }
     if !isPlaying(opt) { return nil, "Game is not start!", false }
+
+    _cnt, queryok := fQueryCount.Load(userToken)
+    cnt := _cnt.(int)
+    if !queryok { return nil, "You haven't query access!", false }
+    if cnt <= 0 { return nil, "You haven no query chance in this loop!", false }
+    fQueryCount.Store(userToken, cnt - 1)
     
     v, status, eyeok := opt.eyeshot(user, &fPoint{ x:loc.X, y:loc.Y })
 
@@ -179,7 +186,21 @@ func Move(userToken, roomToken string, direction, radio int, loc Point) (*fPoint
     return nil, nil, false
 }
 
+// 重置每轮的查询次数限制
+func resetQueryCount(tokens []string) {
+    for _, v := range tokens {
+        fQueryCount.Store(v, default_max_query)
+    }
+}
 
+// 清除
+func clearQueryCount(tokens []string) {
+    for _, v := range tokens {
+        fQueryCount.Delete(v)
+    }
+}
+
+// 执行该轮的actionEvent
 func doIt(roomToken string, actions []eventQ.EventEle, wsActions *WSAction) {
     if len(actions) <= 0 { return }
     var wsChange WSChange // websocket change数据
@@ -212,10 +233,12 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
     if !ok1 { return nil }
     mm := opt.m
 
-    // 设置eventQueue
+    // 设置eventQueue 和 fQueryCount
     var tokens []string
     for _, v := range(opt.userInfo) {
         tokens = append(tokens, v.userToken)
+        // 每轮查询最大值
+        fQueryCount.Store(v.userToken, default_max_query)
     }
     eq.Initialize(tokens)
     // fightLogger.Println("[Run] EventQueue: ", eq)
@@ -227,11 +250,11 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
 
     gameEnd := make(chan bool)
 
-    go func(opt *fOpts, playTimer, actionTimer *time.Ticker, eq *eventQ.EventQueue, ws *WSChannel, gameEnd chan bool) {
+    go func() {
         defer playTimer.Stop()
         defer actionTimer.Stop()
         defer ws.WSDestroy()
-        roomToken := opt.roomToken
+
         loop_cnt        := 0
         global_add_cnt  := 0
         special_add_cnt := 0
@@ -279,8 +302,12 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
                             ws.WSBroadcast(v)
                         }
                     }
+
+                    resetQueryCount(tokens) // 重设每轮最大查询次数
                 } else {
                     opt.mu.Unlock()
+                    // 清除查询次数限制
+                    clearQueryCount(tokens)
                     gameEnd <- true
                     return
                 }
@@ -307,13 +334,15 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
                 }
                 // 清空事件队列
                 eq.Clear()
+                // 清除查询次数限制
+                clearQueryCount(tokens)
                 gameEnd <- true
                 return
 
             default: /* nothing */
             }
         }
-    }(opt, playTimer, actionTimer, eq, ws, gameEnd)
+    }()
    
     return gameEnd
 }
