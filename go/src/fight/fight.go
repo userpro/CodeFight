@@ -119,12 +119,6 @@ func Logout(userToken string) {
     fUserList.Delete(userToken)
 }
 
-func GetUserId(userToken string) (byte, bool) {
-    user, ok := getUser(userToken)
-    if !ok { return _system_, false }
-    return user.id, true
-}
-
 func GetRoom(userToken string) string {
     user, ok := getUser(userToken)
     if !ok { return "" }
@@ -233,11 +227,11 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
 
     gameEnd := make(chan bool)
 
-    go func(roomToken string, playTimer, actionTimer *time.Ticker, eq *eventQ.EventQueue, ws *WSChannel, gameEnd chan bool) {
+    go func(opt *fOpts, playTimer, actionTimer *time.Ticker, eq *eventQ.EventQueue, ws *WSChannel, gameEnd chan bool) {
         defer playTimer.Stop()
         defer actionTimer.Stop()
         defer ws.WSDestroy()
-
+        roomToken := opt.roomToken
         loop_cnt        := 0
         global_add_cnt  := 0
         special_add_cnt := 0
@@ -245,6 +239,8 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
         for {
             select {            
             case <-actionTimer.C:
+                opt.mu.Lock()
+                
                 var wsActions []*WSAction // websocket时间队列
                 loop_cnt++ // 统计游戏共经过几轮操作
                 global_add_cnt++;
@@ -269,20 +265,26 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
                     如果所有玩家logout造成退出房间 
                     logout 会造成 usertoken 不一致 而无法重新加入房间
                 */
-                if eq.Empty() { gameEnd <- true; return }
-                // 处理每轮的操作
-                actions := eq.Get()
-                if len(actions) > 0 {
-                    var wsNormalAction WSAction // 普通的change
-                    doIt(roomToken, actions, &wsNormalAction)
-                    wsActions = append(wsActions, &wsNormalAction)
-                }
-
-                if !ws.WSEmpty() {
-                    for _, v := range wsActions {
-                        ws.WSBroadcast(v)
+                if !eq.Empty() { 
+                    // 处理每轮的操作
+                    actions := eq.Get()
+                    if len(actions) > 0 {
+                        var wsNormalAction WSAction // 普通的change
+                        doIt(roomToken, actions, &wsNormalAction)
+                        wsActions = append(wsActions, &wsNormalAction)
                     }
+
+                    if !ws.WSEmpty() {
+                        for _, v := range wsActions {
+                            ws.WSBroadcast(v)
+                        }
+                    }
+                } else {
+                    opt.mu.Unlock()
+                    gameEnd <- true
+                    return
                 }
+                opt.mu.Unlock()
 
             default: /* nothing */
             }
@@ -311,7 +313,7 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
             default: /* nothing */
             }
         }
-    }(roomToken, playTimer, actionTimer, eq, ws, gameEnd)
+    }(opt, playTimer, actionTimer, eq, ws, gameEnd)
    
     return gameEnd
 }

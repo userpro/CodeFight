@@ -218,11 +218,9 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
     }
 
     // fightLogger.Println(src, dest)
-    opt.m.mu.Lock()
     mm.m1[src.x][src.y] = src.m1
     mm.m1[dest.x][dest.y] = dest.m1
     mm.m2[dest.x][dest.y] = dest.m2
-    opt.m.mu.Unlock()
 
     return src, dest, true
 }

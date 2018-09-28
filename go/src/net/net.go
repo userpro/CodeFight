@@ -71,6 +71,8 @@ func register(c echo.Context) error {
 // Return Type: JSON
 // curl http://127.0.0.1:8080/user\?username\=hipro\&password\=okiamhi
 // Return Result: 0=>"failed"  1=>"ok"  2=>"have logined"
+// Return: 
+//  status: 1->ok  2->login before 0->failed
 func login(c echo.Context) error {
     /* -- 权限检查 -- */
     /* 检查uname */
@@ -248,7 +250,7 @@ func join(c echo.Context) error {
             })
         }
         // Join Failed
-        return c.JSON(http.StatusOK, &RespInfo{ Message: joindata.(string), Status:0})
+        return c.JSON(http.StatusOK, &RespInfo{ Message: "Not found room.", Status:0})
     }
     // Join Failed
     return c.JSON(http.StatusOK, &RespInfo{ Message: "Unknown Error!", Status:0})

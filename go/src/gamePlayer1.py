@@ -3,23 +3,20 @@ import random
 import webbrowser
 from CodeWar.Utils import CodeWar
 
-if __name__ == '__main__':
-    chromePath = '' # 对于Windows用户可能需要填写Chrome安装路径.../chrome.exe
-    username = 'hipro'
-    password = 'okiamhi'
-    email = 'test@test'
-    url = '127.0.0.1'
-    port = '8080'
+playernum = 1 # 玩家人数(创建房间需要)
+row = random.randint(30,90) # (创建房间需要)
+col = random.randint(30,90) # (创建房间需要)
+roomtoken = '' # 加入房间需要
 
-    a = CodeWar(url, port, username, password, email)
-    # a.register()
-    a.login()
-    # playernum 一局游戏的人数
-    a.join(playernum=1, row=random.randint(30,90), col=random.randint(30,90))
-    # 检测游戏是否开始
-    while not a.isStart():
-        time.sleep(3)
+chromePath = '' # 对于Windows用户可能需要填写Chrome安装路径.../chrome.exe
+username = 'hipro'
+password = 'okiamhi'
+email = 'test@test'
+url = '127.0.0.1'
+port = '8080'
 
+
+def view():
     # 浏览器打开view页面 <测试用>
     openUrl = a.url+'/view/'+a.roomtoken
     if chromePath != '':
@@ -30,6 +27,24 @@ if __name__ == '__main__':
     except Exception as e:
         webbrowser.open(openUrl, new=0, autoraise=True)
 
+
+if __name__ == '__main__':
+    a = CodeWar(url, port, username, password, email)
+    # a.register() # 注册
+    a.login()
+    
+    if roomtoken != "":
+        # 加入房间
+        a.join(roomtoken=roomtoken)
+    else:
+        # 创建房间
+        a.join(playernum=playernum, row=row, col=col)
+    
+    # 检测游戏是否开始
+    while not a.isStart():
+        time.sleep(3)
+
+    view() # 展示web页面 (非必须)
 
     # 游戏主循环 操作延时不要低于100ms 操作会累积
     # 获取初始位置(基地)

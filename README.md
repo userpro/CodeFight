@@ -1,22 +1,35 @@
 # CodeFight
 Go fight!
 
-### HTTP 接口
-
 文档后补 (咕咕咕咕...
 
+### HTTP 接口
+
+    e.POST(  "/user", register)
+    e.GET(   "/user", login   )
+    e.DELETE("/user", logout  )
+    
+    e.GET(   "/room", query   )
+    e.POST(  "/room", join    )
+    e.PUT(   "/room", move    )
+    e.DELETE("/room", leave   )
+    e.GET("/room/start",      isStart)
+    e.GET("/room/scoreboard", getScoreBoard)
+    
+    e.GET("/view/:roomtoken", view)
 ### 如何测试/运行
 
 ##### 依赖
 
 ```html
 都为最新版
-go:
-	github.com/labstack/echo
-	github.com/go-sql-driver/mysql
+go:(可能需要翻墙)
+	go get github.com/labstack/echo
+	go get github.com/go-sql-driver/mysql
+	go get golang.org/x/net/websocket
 python:
-	requests
- 	(如果想用Chrome打开查看, Windows可能需要设置代码里 gameUser1.py:7 chromepath变量的值)
+	pip3 install requests
+ 	(如果想用Chrome打开查看, Windows可能需要设置代码里 gamePlayer1.py:11 chromepath变量的值)
 ```
 
 ##### 数据库
@@ -40,7 +53,8 @@ python:
 git clone https://github.com/userpro/CodeFight.git
 cd CodeFight/go/src
 go run main.go
-python3 example.py
+python3 gamePlayer1.py
+# 如果需要启动多个 player 测试, 修改 gamePlayer1.py:6 的 playernum 数量和 gamePlayer2.py:9 的roomtoken(需要先启动 gamePlayer1.py 获得)
 ```
 
 
@@ -77,6 +91,10 @@ _type_mask_ = 0xe0 // 1110 0000
 
 
 ### Webscoket
+
+路径: go/src/public/view.html
+
+仅前端展示页面的数据接口, 可定制自己的前端展示页面.
 
 流程如下:
 

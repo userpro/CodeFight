@@ -127,7 +127,7 @@ class CodeWar(object):
         else:
             return _query['eyeshot']
 
-    # --* 查询用户状态(是否游戏 上一局输赢) *--
+    # --* 查询得分状态(少一点 耗性能) *--
     def getScoreBoard(self):
         _scoreboard = requests.get(self.url + "/room/scoreboard?roomtoken=" + self.roomtoken).json()
 
