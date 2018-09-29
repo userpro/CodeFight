@@ -20,9 +20,10 @@ import (
 )
 
 var (
-    eventQMap sync.Map // map[roomToken]*eventQ
     netToken  sync.Map // [userToken]*netUserInfo
     netOnline sync.Map // [username]bool
+    
+    eventQMap sync.Map // map[roomToken]*eventQ
     WSChannelMap sync.Map // map[roomtoken]*WSChannel
 
     dbw       DbWorker
@@ -135,10 +136,8 @@ func logout(c echo.Context) error {
     if rtk != "" { 
         fight.LeaveRoom(utk, rtk)
         /* 清除eventQ中的相应项 */
-        _evq, ok := eventQMap.Load(rtk)
-        evq := _evq.(*eventQ.EventQueue)
-        if ok { evq.Remove(utk) }
-        if evq.Empty() { eventQMap.Delete(rtk) }
+        evq, ok := eventQMap.Load(rtk)
+        if ok { evq.(*eventQ.EventQueue).Remove(utk) }
     }
 
     fight.Logout(utk)
@@ -147,7 +146,7 @@ func logout(c echo.Context) error {
     return c.NoContent(http.StatusNoContent)
 }
 
-func gameBegin(rtk string) {
+func gameLoopBegin(rtk string) {
     teq := eventQ.New()
     eventQMap.Store(rtk, teq) // 绑定事件循环到roomtoken
     // 加入websocket
@@ -204,7 +203,7 @@ func join(c echo.Context) error {
             if joinstatus == fight.RM_playing_ {
                 netLogger.Println("[Join] Started!")
                 // 启动游戏
-                gameBegin(rtk)
+                gameLoopBegin(rtk)
             }
             
             return c.JSON(http.StatusOK, &netUserRet{
@@ -232,7 +231,7 @@ func join(c echo.Context) error {
             if joinstatus == fight.RM_playing_ {
                 netLogger.Println("[Join] Started!")
                 // 游戏开始
-                gameBegin(rtk)
+                gameLoopBegin(rtk)
             }
 
             data := joindata.(*fight.NetJoinRet)
@@ -359,12 +358,11 @@ func leave(c echo.Context) error {
     if rtk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! RoomToken can't empty.", Status:0}) }
     /* -- 权限检查 -- */
 
+    /* 玩家离开房间 */
     msg, ok := fight.LeaveRoom(utk, rtk)
     /* 清除eventQ中的相应项 */
-    _evq, ok := eventQMap.Load(rtk)
-    evq := _evq.(*eventQ.EventQueue)
-    if ok { evq.Remove(utk) }
-    if evq.Empty() { eventQMap.Delete(rtk) }
+    evq, ok := eventQMap.Load(rtk)
+    if ok { evq.(*eventQ.EventQueue).Remove(utk) }
 
     if !ok { return c.JSON(http.StatusOK, &RespInfo{ Message:msg, Status:0 }) }
     return c.JSON(http.StatusOK, &RespInfo{ Message:msg, Status:1 })

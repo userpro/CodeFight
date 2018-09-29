@@ -108,7 +108,6 @@ class CodeWar(object):
         if x == -1: x = self.x
         if y == -1: y = self.y
         
-        print(json.dumps({"a":1}))
         payload = {
             'usertoken': self.usertoken,
             'roomtoken': self.roomtoken,
@@ -141,7 +140,7 @@ class CodeWar(object):
     def leave(self):
         _leave = requests.delete(self.url + "/room?usertoken=" + self.usertoken + "&roomtoken=" + self.roomtoken).json()
 
-        print(_leave)
+        print('[leave]', _leave)
 
     # --* 退出游戏 *--
     def logout(self, usertoken=''):

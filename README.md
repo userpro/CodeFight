@@ -6,7 +6,7 @@
 
 ### 游戏介绍
 
-简单的代码操作兵力对战游戏, 受到  [generals.io]() 以及知乎上 Color Fight 启发 , 不同的是这是为支持脚本对战的版本.  Go fight! 
+简单的代码操作兵力对战游戏, 受到  [generals.io]() 以及知乎上 Color Fight 启发 .  Go fight! 
 
 ### 如何测试/运行
 
@@ -26,7 +26,7 @@ python:
 ##### 数据库
 
 ```html
-修改 go/src/net/net.go:406-408 为本地数据库信息
+修改 go/src/net/net.go:415-417 为本地数据库信息
 数据库结构:
 	表名 userinfo
 	id(主键)		   int(11) 			AUTO_INCREMENT

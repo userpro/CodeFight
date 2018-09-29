@@ -8,6 +8,20 @@ import (
     "strconv"
 )
 
+func (qry *fQueryCounter) dec() bool {
+    qry.mu.Lock()
+    defer qry.mu.Unlock()
+    if qry.count - 1 < 0 { return false }
+    qry.count--
+    return true
+}
+
+func (qry *fQueryCounter) reset() {
+    qry.mu.Lock()
+    qry.count = default_max_query
+    qry.mu.Unlock()
+}
+
 // Return Result: 
 //  RM_playing_  RM_full_  RM_unauthorized_  RM_already_join_  RM_playing_  RM_joinable_
 func (opt *fOpts) join(user *fUser) (int, bool) {

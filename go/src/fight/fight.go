@@ -11,12 +11,14 @@ import (
 )
 
 var (
-    fUserList sync.Map // map[userToken]*fUser
-    fOptsList sync.Map // map[roomToken]*fOpts
-    fScoreBoard sync.Map // map[roomtoken](*map[string]int)
-    fQueryCount sync.Map // map[usertoken]int
-    WSChannelMap sync.Map // [token]*chan WSAction
-    fightLogger  *log.Logger
+    fUserList      sync.Map // map[userToken]*fUser
+    fQueryCountMap sync.Map // map[usertoken]*fQueryCounter
+
+    fOptsList      sync.Map // map[roomToken]*fOpts
+    fScoreBoardMap sync.Map // map[roomtoken](*map[string]int)
+    WSChannelMap   sync.Map // [roomtoken]*chan WSAction
+    
+    fightLogger    *log.Logger
 )
 
 func NewRoom(userToken string, params ...int) (interface{}, int, bool) {
@@ -129,7 +131,7 @@ func GetRoom(userToken string) string {
 func GetScoreBoard(roomToken string) (*map[string]int, int, bool) {
     opt, ok := getOpts(roomToken)
     if !ok { 
-        sb, sbok := fScoreBoard.Load(roomToken)
+        sb, sbok := fScoreBoardMap.Load(roomToken)
         if sbok == true { return sb.(*map[string]int), Game_success_response_, true }
         return nil, RM_not_found_, false 
     }
@@ -142,16 +144,15 @@ func GetScoreBoard(roomToken string) (*map[string]int, int, bool) {
 
 func GetNetEyeShot(userToken, roomToken string, loc Point) (*NetEyeShot, string, bool) {
     user, ok1 := getUser(userToken);
-    if !ok1 { return nil, "You haven't login!", false }
+    if !ok1 { return nil, "Not login!", false }
     opt, ok2 := getOpts(user.roomToken)
     if !ok2 { return nil, "Not found room!", false }
     if !isPlaying(opt) { return nil, "Game is not start!", false }
 
-    _cnt, queryok := fQueryCount.Load(userToken)
-    cnt := _cnt.(int)
-    if !queryok { return nil, "You haven't query access!", false }
-    if cnt <= 0 { return nil, "You haven no query chance in this loop!", false }
-    fQueryCount.Store(userToken, cnt - 1)
+    _qry, queryok := fQueryCountMap.Load(userToken)
+    qry := _qry.(*fQueryCounter)
+    if !queryok { return nil, "No query access!", false }
+    if !qry.dec() { return nil, "Query count limited!", false }
     
     v, status, eyeok := opt.eyeshot(user, &fPoint{ x:loc.X, y:loc.Y })
 
@@ -189,14 +190,16 @@ func Move(userToken, roomToken string, direction, radio int, loc Point) (*fPoint
 // 重置每轮的查询次数限制
 func resetQueryCount(tokens []string) {
     for _, v := range tokens {
-        fQueryCount.Store(v, default_max_query)
+        _qry, _ := fQueryCountMap.Load(v)
+        qry := _qry.(*fQueryCounter)
+        qry.reset()
     }
 }
 
 // 清除
 func clearQueryCount(tokens []string) {
     for _, v := range tokens {
-        fQueryCount.Delete(v)
+        fQueryCountMap.Delete(v)
     }
 }
 
@@ -238,7 +241,7 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
     for _, v := range(opt.userInfo) {
         tokens = append(tokens, v.userToken)
         // 每轮查询最大值
-        fQueryCount.Store(v.userToken, default_max_query)
+        fQueryCountMap.Store(v.userToken, &fQueryCounter{ count: default_max_query })
     }
     eq.Initialize(tokens)
     // fightLogger.Println("[Run] EventQueue: ", eq)
@@ -304,7 +307,8 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
                     }
 
                     resetQueryCount(tokens) // 重设每轮最大查询次数
-                } else {
+                
+                } else { /* 已经没有玩家在房间内 */
                     opt.mu.Unlock()
                     // 清除查询次数限制
                     clearQueryCount(tokens)
@@ -320,12 +324,12 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
             select {
             case <-playTimer.C:
                 fightLogger.Println("[Run] Game End!")
-                /* 保留最终榜单 */
+                /* 保留最终榜单一定时间 */
                 sb, _, _ := GetScoreBoard(roomToken)
-                fScoreBoard.Store(roomToken, sb)
+                fScoreBoardMap.Store(roomToken, sb)
                 go func(rtk string) {
                     <- time.After(ScoreBoardKeepTime)
-                    fScoreBoard.Delete(rtk)
+                    fScoreBoardMap.Delete(rtk)
                 }(roomToken)
                 /* 退出所有玩家 */
                 for _, v := range(opt.userInfo) {

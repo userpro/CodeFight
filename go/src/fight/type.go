@@ -23,6 +23,11 @@ type (
         baseLoc       Point
     }
 
+    fQueryCounter struct {
+        mu        sync.Mutex
+        count     int
+    }
+
     fOpts struct {
         mu        sync.RWMutex
         accId     byte // 当前最小未分配ID (严格递增)
