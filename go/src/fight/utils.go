@@ -241,7 +241,7 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
 
 // Return Result:
 //  Game_invalid_point_  Game_success_response_
-func (opt *fOpts) eyeshot(user *fUser, loc *fPoint) (*NetEyeShot, int, bool) {
+func (opt *fOpts) eyeshot(user *fUser, loc *fPoint) (*EyeShot, int, bool) {
     if !checkLoc(opt, loc) { return nil, Game_invalid_point_, false }
 
     mm := opt.m
@@ -249,7 +249,7 @@ func (opt *fOpts) eyeshot(user *fUser, loc *fPoint) (*NetEyeShot, int, bool) {
     defer mm.mu.RUnlock()
     if user.id != getUserId(mm.m2[loc.x][loc.y]) { return nil, Game_not_belong_, false }
 
-    v := &NetEyeShot{}
+    v := &EyeShot{}
     ltx := loc.x - default_eye_level
     lty := loc.y - default_eye_level
     lth := default_eye_level * 2 + 1

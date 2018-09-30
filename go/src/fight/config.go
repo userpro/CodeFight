@@ -4,7 +4,7 @@ import "time"
 
 /* websocket */
 const (
-    WS_CHANNEL_BUFFER_SIZE  = 20 // websocket channel buffer
+    WS_CHANNEL_BUFFER_SIZE  = 50 // websocket channel buffer
     WSAction_mapinfo        = 1 // 获取map信息
     WSAction_normal_change  = 2 // 获取普通改变 (Move, ...)
     WSAction_global_add     = 3 // 全局军队增加
@@ -47,7 +47,7 @@ const (
 
 /* 游戏设置 */
 const (
-    default_action_interval = time.Second * 1 // 每轮action的间隔
+    default_action_interval = time.Millisecond * 500 // 每轮action的间隔
     default_play_timeout  = time.Second * 100  // 游戏总时限 (s)
 
     default_max_portal  = 10  // 地图能量泉数量

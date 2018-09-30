@@ -31,14 +31,15 @@ def view():
 if __name__ == '__main__':
     a = CodeWar(url, port, username, password, email)
     # a.register() # 注册
-    a.login()
+    status = a.login()
     
-    if roomtoken != "":
-        # 加入房间
-        a.join(roomtoken=roomtoken)
-    else:
-        # 创建房间
-        a.join(playernum=playernum, row=row, col=col)
+    if status == 1:
+        if roomtoken != "":
+            # 加入房间
+            a.join(roomtoken=roomtoken)
+        else:
+            # 创建房间
+            a.join(playernum=playernum, row=row, col=col)
     
     # 检测游戏是否开始
     while not a.isStart():

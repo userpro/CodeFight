@@ -64,9 +64,9 @@ func (ws *WSChannel)WSRegister(token string) chan *WSAction {
 func (ws *WSChannel)WSCancel(token string) {
     ch, ok := ws.Ch.Load(token)
     if !ok { return }
+    ws.Ch.Delete(token)
     _ch := ch.(chan *WSAction)
     close(_ch)
-    ws.Ch.Delete(token)
     ws.count--
 }
 

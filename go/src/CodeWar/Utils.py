@@ -29,6 +29,8 @@ class CodeWar(object):
         print('[register] ', _register)
         if _register['status'] != 1:
             print('<Error>[register] ', _register['message'])
+        # 返回 1 => 注册成功
+        return _register['status']
 
     # --* 登录 *--
     def login(self):
@@ -38,9 +40,12 @@ class CodeWar(object):
         if _login['status'] == 1:
             self.usertoken = _login['usertoken']
         elif _login['status'] == 2:
-            print('[login] ', _login['message'])
+            self.usertoken = _login['usertoken']
+            self.roomtoken = _login['roomtoken']
         else:
             print('<Error>[login] ', _login['message'])
+        # 返回状态 1=>登录成功  2=>断线重连成功
+        return _login['status']
 
     # --* 加入或者创建房间 *--
     def join(self, roomtoken='', playernum=1, row=30, col=30):
@@ -70,6 +75,9 @@ class CodeWar(object):
         else:
             print('<Error>[join] ', _join['message'])
 
+        # 返回 1 => join 成功
+        return _join['status']
+
     # --* 获取游戏是否开始以及基地坐标 *--
     def isStart(self):
         _isStart = requests.get(self.url + "/room/start?usertoken=" + self.usertoken + "&roomtoken=" + self.roomtoken).json()
@@ -78,9 +86,9 @@ class CodeWar(object):
         if _isStart['status'] == 1:
             self.x = _isStart['x']
             self.y = _isStart['y']
-            return True
-
-        return False
+            
+        # 返回 1 => start  0 => not start
+        return _isStart['status']
 
     # --* 返回基地坐标 *--
     def getBase(self):
@@ -101,6 +109,9 @@ class CodeWar(object):
         _move = requests.put(self.url + "/room", headers=headers, data=json.dumps(payload)).json()
 
         print('[move] ', _move)
+        # 返回 1 => 成功 
+        # PS: 这个返回值没啥用
+        return _move['status']
 
 
     # --* 查询 *--
@@ -121,24 +132,33 @@ class CodeWar(object):
         _query = requests.get(self.url + "/room", headers=headers, data=json.dumps(payload)).json()
         
         print('[query] ', _query)
+
+        # 返回值 (result, status)
+        # status 1 => 成功
         if _query['status'] != 1:
             print('<Error>[_query] ', _query['message'])
-        else:
-            return _query['eyeshot']
+            return ({}, _query['status'])
+        
+        return (_query['eyeshot'], _query['status'])
 
     # --* 查询得分状态(少一点 耗性能) *--
     def getScoreBoard(self):
         _scoreboard = requests.get(self.url + "/room/scoreboard?roomtoken=" + self.roomtoken).json()
 
         print('[getScoreBoard] ', _scoreboard)
+        
+        # 返回值 (result, status)
+        # status 1 => 成功
         if _scoreboard['status'] != 1:
             print('<Error>[getScoreBoard]')
-        else:
-            return _scoreboard['scoreboard']
+            return ({}, _scoreboard['status'])
+        
+        return (_scoreboard['scoreboard'], _scoreboard['status'])
 
     # --* 离开房间 *--
     def leave(self):
         _leave = requests.delete(self.url + "/room?usertoken=" + self.usertoken + "&roomtoken=" + self.roomtoken).json()
+        self.roomtoken = ''
 
         print('[leave]', _leave)
 
@@ -147,6 +167,9 @@ class CodeWar(object):
         if usertoken == '':
             usertoken = self.usertoken
         _logout = requests.delete(self.url + "/user?usertoken="+usertoken)
+        self.usertoken = ''
+
+        print('[logout]')
 
 
 

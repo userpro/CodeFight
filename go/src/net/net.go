@@ -21,12 +21,13 @@ import (
 
 var (
     netToken  sync.Map // [userToken]*netUserInfo
-    netOnline sync.Map // [username]bool
+    netOnline sync.Map // [username]userToken // 在线状态维护
     
     eventQMap sync.Map // map[roomToken]*eventQ
     WSChannelMap sync.Map // map[roomtoken]*WSChannel
 
     dbw       DbWorker
+
     netLogger *log.Logger
     dbLogger  *log.Logger
 )
@@ -82,15 +83,26 @@ func login(c echo.Context) error {
     /* 检查pwd */
     pwd   := c.QueryParam("password")
     if pwd == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! Password can't empty.", Status:0}) }
-    /* 判断是否已经在线 */
-    _, ok := netOnline.Load(uname)
-    if ok {
-        return c.JSON(http.StatusOK, &RespInfo{ Message: "Login OK! You have login before.", Status:2})
-    }
     /* -- 权限检查 -- */
 
-    ok = dbw.QueryData(uname, pwd)
+    ok := dbw.QueryData(uname, pwd)
     if ok {
+        /* 判断是否已经在线 */
+        _utk, ok := netOnline.Load(uname)
+        if ok {
+            /* 断线重连 */
+            utk := _utk.(string)
+            user, _ := netToken.Load(utk)
+            return c.JSON(http.StatusOK, &netUserRet{
+                UserToken: user.(*netUserInfo).UserToken,
+                RoomToken: user.(*netUserInfo).RoomToken,
+                RespInfo:  RespInfo { 
+                    Message: "Login OK! You have login before.",
+                    Status: 2,
+                },
+            })
+        }
+        /* 判断是否在审核 */
         if dbw.UserInfo.Status == 0 {
             return c.JSON(http.StatusOK, &RespInfo{ Message:"Login Failed! Waiting for Review.", Status:0})
         }
@@ -104,7 +116,7 @@ func login(c echo.Context) error {
         })
         // netLogger.Println("[login] netToken: ", netToken[usertoken])
         // 维护在线状态
-        netOnline.Store(uname, true)
+        netOnline.Store(uname, utk)
         fight.Login(utk, uname)
         // 设置登录失效超时
         go loginTimeOut(utk)
@@ -194,9 +206,10 @@ func join(c echo.Context) error {
         /* 创建房间 */
         joindata, joinstatus, newroomok := fight.NewRoom(utk, playernum, row, col)
         if newroomok {
-            id := joindata.(*fight.NetJoinRet).Uid
-            nntk.Id = id
-            rtk := joindata.(*fight.NetJoinRet).RoomToken
+            rtk := joindata.(*fight.JoinRet).RoomToken
+            // 更新netToken
+            nntk.Id = joindata.(*fight.JoinRet).Uid
+            nntk.RoomToken = rtk
 
             /* 如果NewRoom 返回 RM_playing_ 标志
                 表示 join 后立即开始 */
@@ -234,12 +247,15 @@ func join(c echo.Context) error {
                 gameLoopBegin(rtk)
             }
 
-            data := joindata.(*fight.NetJoinRet)
+            data := joindata.(*fight.JoinRet)
             id := data.Uid
             playernum := data.PlayerNum
             row := data.Row
             col := data.Col
-            nntk.Id = byte(id);
+            // 更新netToken
+            nntk.Id = byte(id)
+            nntk.RoomToken = rtk
+            
             return c.JSON(http.StatusOK, &netUserRet{
                 UserToken: utk,
                 RoomToken: rtk,
@@ -283,7 +299,7 @@ func query(c echo.Context) error {
     /* -- 权限检查 -- */
 
     /* 获取到eye */
-    eye, msg, ok := fight.GetNetEyeShot(u.UserToken, u.RoomToken, u.Loc)
+    eye, msg, ok := fight.GetEyeShot(u.UserToken, u.RoomToken, u.Loc)
     if !ok { return c.JSON(http.StatusUnauthorized, &RespInfo{ Message:msg, Status:0 }) }
 
     return c.JSON(http.StatusOK, &netQueryRet{ 
@@ -350,8 +366,10 @@ func leave(c echo.Context) error {
     /* 检查usertoken */
     if utk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! UserToken can't empty.", Status:0}) }
     /* 检查是否在线 */
-    _, ok := netToken.Load(utk)
+    ntk, ok := netToken.Load(utk)
     if !ok { return c.JSON(http.StatusUnauthorized, &RespInfo{ Message:"Failed! You haven't login!", Status:0 }) }
+    nntk := ntk.(*netUserInfo)
+    nntk.RoomToken = ""
 
     /* 检查roomtoken */
     rtk := c.QueryParam("roomtoken")
@@ -375,14 +393,14 @@ func isStart(c echo.Context) error {
     /* -- 权限检查 -- */
     utk := c.QueryParam("usertoken")
     /* 检查usertoken */
-    if utk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! UserToken can't empty.", Status:0}) }
+    if utk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! UserToken can't empty.", Status:0 }) }
     /* 检查是否在线 */
     _, ok := netToken.Load(utk)
     if !ok { return c.JSON(http.StatusUnauthorized, &RespInfo{ Message:"Failed! You haven't login!", Status:0 }) }
 
     /* 检查roomtoken */
     rtk := c.QueryParam("roomtoken")
-    if rtk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! RoomToken can't empty.", Status:0}) }
+    if rtk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! RoomToken can't empty.", Status:0 }) }
     /* -- 权限检查 -- */
 
     x, y, ok := fight.IsStart(utk, rtk)

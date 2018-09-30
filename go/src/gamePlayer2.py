@@ -6,7 +6,7 @@ from CodeWar.Utils import CodeWar
 playernum = 1 # 玩家人数(创建房间需要)
 row = random.randint(30,90) # (创建房间需要)
 col = random.randint(30,90) # (创建房间需要)
-roomtoken = '7147a528efc5e8aab4c8072470a20518' # 加入房间需要填写要加入的房间的roomtoken
+roomtoken = '988ecc49ccc5423bf7a08e79300e7ea8' # 加入房间需要
 
 chromePath = '' # 对于Windows用户可能需要填写Chrome安装路径.../chrome.exe
 username = 'test'
@@ -14,7 +14,6 @@ password = 'test'
 email = 'test'
 url = '127.0.0.1'
 port = '8080'
-
 
 def view():
     # 浏览器打开view页面 <测试用>
@@ -31,14 +30,15 @@ def view():
 if __name__ == '__main__':
     a = CodeWar(url, port, username, password, email)
     # a.register() # 注册
-    a.login()
+    status = a.login()
     
-    if roomtoken != "":
-        # 加入房间
-        a.join(roomtoken=roomtoken)
-    else:
-        # 创建房间
-        a.join(playernum=playernum, row=row, col=col)
+    if status == 1:
+        if roomtoken != "":
+            # 加入房间
+            a.join(roomtoken=roomtoken)
+        else:
+            # 创建房间
+            a.join(playernum=playernum, row=row, col=col)
     
     # 检测游戏是否开始
     while not a.isStart():

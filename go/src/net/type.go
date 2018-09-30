@@ -14,8 +14,8 @@ type (
     }
 
     RoomOptRet struct {
-        Row       int    `json:"row,omitempty"`
-        Col       int    `json:"col,omitempty"`
+        Row       int    `json:"row"`
+        Col       int    `json:"col"`
         Playernum   int    `json:"playernum,omitempty"`
     }
 
@@ -28,8 +28,8 @@ type (
     }
 
     netUserRet struct {
-        UserToken string `json:"usertoken,omitempty"`
-        RoomToken string `json:"roomtoken,omitempty"`
+        UserToken string `json:"usertoken"`
+        RoomToken string `json:"roomtoken"`
         RoomOptRet
         RespInfo
     }
@@ -54,7 +54,7 @@ type (
     }
 
     netQueryRet struct {
-        Eye       *fight.NetEyeShot `json:"eyeshot,omitempty"`
+        Eye       *fight.EyeShot `json:"eyeshot,omitempty"`
         RespInfo
     }
 

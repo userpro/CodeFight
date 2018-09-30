@@ -51,14 +51,14 @@ type (
     }
 
     /* net */
-    NetJoinRet struct {
+    JoinRet struct {
         Uid       byte
         PlayerNum int
         Row, Col  int
         RoomToken string
     }
 
-    NetEyeShot struct {
+    EyeShot struct {
         M1 [default_eye_level * 2 + 1][default_eye_level * 2 + 1]int   `json:"m1"`
         M2 [default_eye_level * 2 + 1][default_eye_level * 2 + 1]byte  `json:"m2"`
     }

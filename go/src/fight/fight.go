@@ -88,7 +88,7 @@ func Join(userToken, roomToken string) (interface{}, int, bool) {
     
     status, joinok := opt.join(user)
     if joinok {
-        return &NetJoinRet{
+        return &JoinRet{
             Uid: user.id,
             PlayerNum: opt.playerNum,
             Row: opt.row,
@@ -142,7 +142,7 @@ func GetScoreBoard(roomToken string) (*map[string]int, int, bool) {
     return &sb, Game_success_response_, true
 }
 
-func GetNetEyeShot(userToken, roomToken string, loc Point) (*NetEyeShot, string, bool) {
+func GetEyeShot(userToken, roomToken string, loc Point) (*EyeShot, string, bool) {
     user, ok1 := getUser(userToken);
     if !ok1 { return nil, "Not login!", false }
     opt, ok2 := getOpts(user.roomToken)
