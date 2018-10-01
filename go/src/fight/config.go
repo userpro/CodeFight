@@ -5,6 +5,7 @@ import "time"
 /* websocket */
 const (
     WS_CHANNEL_BUFFER_SIZE  = 50 // websocket channel buffer
+    WSAction_game_end       = 0 // 游戏结束
     WSAction_mapinfo        = 1 // 获取map信息
     WSAction_normal_change  = 2 // 获取普通改变 (Move, ...)
     WSAction_global_add     = 3 // 全局军队增加

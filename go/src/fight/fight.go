@@ -331,6 +331,8 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
                     <- time.After(ScoreBoardKeepTime)
                     fScoreBoardMap.Delete(rtk)
                 }(roomToken)
+                /* websocket发送游戏结束 */
+                ws.WSBroadcast(&WSAction{ Typ: WSAction_game_end })
                 /* 退出所有玩家 */
                 for _, v := range(opt.userInfo) {
                     v.status = US_waiting_
