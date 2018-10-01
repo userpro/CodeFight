@@ -3,151 +3,108 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Code Fight ! ! !</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-    }
-    html, body {
-      height: 100%;
-      width: 100%;
-    }
+  <title>CodeFight-代码の战争</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+  <style type="text/css">
+   * {
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body,#app {
+    height: 100%;
+    width: 100%;
+  }
   </style>
 </head>
 
 <body>
-  <canvas id="viewMap"></canvas>
+  <div id="app">
+    <canvas id="viewMap"></canvas>
+  </div>
 
-  <script>
-    /* 地形 Cell Type */
-    var  _space_   = 0x00; // 000- ----
-    var  _base_    = 0x20; // 001- ----
-    var  _barback_ = 0x40; // 010- ----
-    var  _portal_  = 0x60; // 011- ----
-    var  _barrier_ = 0x80; // 100- ----
-    /* 阵营 User Id */
-    var  _system_  = 0x00; // ---- -000
-    var  _visitor_ = 0x01; // ---- -001
+<script>
+let rtk = {{.}}
 
-    var  _user_mask_ = 0x1f; // 0001 1111
-    var  _type_mask_ = 0xe0; // 1110 0000
+var app = new Vue({
+  el: '#app',
+  data: {
+    canvas: {},
+    context: {},
+    COLOR: 'lightblue',
+    GRID_SIZE: 50,
+    WH:'',
+    WW:'',
+  },
+  created() {
+    this.WW = document.documentElement.clientWidth || document.body.clientWidth;
+    this.WH = document.documentElement.clientHeight || document.body.clientHeight;
+  },
+  mounted() {
+    this.canvas = document.querySelector('#viewMap')
+    this.context = this.canvas.getContext('2d')
+    this.init()
+  },
+  methods: {
+    //初始化
+    init() {
 
-    function isSpace(cell) { return cell&_type_mask_==_space_ }
-    function isBase(cell) { return cell&_type_mask_==_base_ }
-    function isBarback(cell) { return cell&_type_mask_==_barback_ }
-    function isPortal(cell) { return cell&_type_mask_==_portal_ }
-    function isBarrier(cell) { return cell&_type_mask_==_barrier_ }
-    function isSystem(cell) { return cell&_user_mask_==_system_ }
+      let loc = window.location
 
-    function getUserId(cell) { return cell&_user_mask_ }
-  </script>
+      let uri = 'ws:'
 
-  <script>
-    var color_list = [
-      '#259073', '#041122', '#7FDA89', '#C8E98E',
-      '#E6F99D', '#DFBA69', '#33605A', '#91A398',
-      '#F38A8A', '#CDE9CA', '#A9C1D9', '#607890',
-      '#8E9E82', '#A3D95B', '#AAE3AB', '#442433',
-      '#F6F0BC', '#F77825', '#D3CE3D', '#60B99A',
-      '#F1EFA5', '#F85931', '#CE1836', '#A3A948',
-      '#EDB92E', '#009989', '#FFFF99', '#D9CC8C',
-      '#B39980', '#8C6673', '#663366', '#FC580C',
-      '#FFA927', '#FDCA49', '#FC6B0A', '#F8872E',
-      '#360745', '#1B8798', '#D61C59', '#E7D84B',
-      '#A3B808', '#2B1719', '#793A57', '#4D3339',
-      '#8C873E', '#D1C5A5', '#A38A5F', '#C2768E',
-      '#E8A0A2', '#FDCBB1', '#FDF0CC', '#00A0B0',
-      '#6A4A3C', '#CC333F', '#EB6841', '#EDC951'
-    ].sort(function() { return 0.5 - Math.random(); });
-
-    var m1 = [], m2 = []; // 地图m1 m2
-    var userinfo = {};    // 用户信息
-    var id_color = {};    // id于颜色对应
-    var action_queue = [];// 数据更新队列
-
-    function ViewInit(row, col) {
-      // 随机颜色分配
-      for (let i = userinfo.length - 1; i >= 0; i--) {
-        id_color[userinfo[i].id] = color_list[i];
+      if (loc.protocol === 'https:') {
+        uri = 'wss:'
       }
-      resizeCanvas(row, col);
-      drawBoard(row, col);
-    }
+      uri += '//' + loc.host
+      uri += '/ws'
 
-    let BGCOLOR = 'white';
-    let BORDER_COLOR = '#000'
-    let cvs = document.getElementById('viewMap');
-    let ctx = cvs.getContext('2d');
-    let GRID_SIZE = 50;
-    function resizeCanvas(row, col) {
-      cvs.width = GRID_SIZE * row;
-      cvs.height = GRID_SIZE * col;
-    }
+      this.ws = new WebSocket(uri)
 
-    function drawBoard(row, col) {
+      this.ws.onopen = ()=> {
+        console.log('Connected')
+        this.ws.send(rtk)
+      }
+
+      let flag = true
+      this.ws.onmessage = evt=> {
+        console.log('onmessage', evt.data)
+        let recvData = JSON.parse(evt.data)
+        console.log(recvData)
+        if (flag) {
+          flag = false
+          let row = recvData['value']['row'], col = recvData['value']['col']
+          this.resizeCanvas(row, col)
+          this.drawBoard(row, col)
+        }
+      }
+
+      this.ws.onerror = ()=> {
+        console.log('WebSocket has error')
+      }
+    },
+    // 调整地图大小
+    resizeCanvas: function (row, col) {
+      this.canvas.width = this.GRID_SIZE * row
+      this.canvas.height = this.GRID_SIZE * col
+    },
+    //画地图
+    drawBoard: function (row, col) {
       for (let i = 0; i < row; i++) {
         for (let j = 0; j < col; j++) {
-          ctx.beginPath();
+          this.context.beginPath()
           //边框颜色
-          ctx.strokeStyle = BORDER_COLOR;
-          ctx.fillStyle = BGCOLOR;
-          ctx.fillRect(i*GRID_SIZE, j*GRID_SIZE, GRID_SIZE, GRID_SIZE);
-          ctx.strokeRect(i*GRID_SIZE, j*GRID_SIZE, GRID_SIZE, GRID_SIZE);
-          ctx.closePath();
+          this.context.strokeStyle = '#000'
+          this.context.fillStyle = this.COLOR
+          this.context.fillRect(i * this.GRID_SIZE, j * this.GRID_SIZE, this.GRID_SIZE, this.GRID_SIZE)
+          this.context.strokeRect(i * this.GRID_SIZE, j * this.GRID_SIZE, this.GRID_SIZE, this.GRID_SIZE)
+          this.context.closePath()
         }
       }
     }
-
-    // 填充 Cell 的背景色
-    function drawCell(x, y, uid) {
-      ctx.beginPath();
-      ctx.strokeStyle = BORDER_COLOR; // 边框颜色
-      ctx.fillStyle = id_color[uid];  // 背景色
-      ctx.fillRect(x*GRID_SIZE, y*GRID_SIZE, GRID_SIZE, GRID_SIZE);
-      ctx.closePath();
-    }
-
-  </script>
-
-  <script>
-    let rtk = {{.}};
-    let loc = window.location;
-    let uri = 'ws:';
-
-    if (loc.protocol === 'https:') {
-      uri = 'wss:';
-    }
-    uri += '//' + loc.host;
-    uri += '/ws';
-
-    ws = new WebSocket(uri)
-
-    ws.onopen = function() {
-      console.log('Connected')
-      ws.send(rtk);
-    }
-
-    let flag = true;
-    ws.onmessage = function(evt) {
-      let recvData = JSON.parse(evt.data);
-      console.log(recvData);
-      if (flag) {
-        flag = false;
-        let row = recvData['value']['row'],
-            col = recvData['value']['col'];
-
-        userinfo = recvData['value']['userinfo']
-        m1 = recvData['value']['m1']
-        m2 = recvData['value']['m2']
-        ViewInit(row, col);
-      } else {
-        action_queue.push(recvData)
-      }
-    }
-
-    // console.log(rtk)
-  </script>
+  }
+})
+</script>
 </body>
 
 </html>
