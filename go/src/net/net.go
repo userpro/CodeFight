@@ -463,7 +463,7 @@ func Run() {
     e.GET("/room/scoreboard", getScoreBoard)
 
     e.GET("/view/:roomtoken", view)
-    // e.Static("/", "public")
+    e.Static("/", "public")
     e.GET("/ws", wsocketView)
 
     e.GET("/", func(c echo.Context) error {
