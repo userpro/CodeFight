@@ -168,7 +168,7 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
     /* 调入判断 */
     dest := getNextPoint(src, direction)
     if !checkLoc(opt, dest) { 
-        fightLogger.Println("[Move] Invalid next Point!")
+        // fightLogger.Println("[Move] Invalid next Point!")
         return nil,nil,false 
     }
     dest.m1 = mm.m1[dest.x][dest.y]

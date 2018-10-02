@@ -25,11 +25,12 @@ python:
 
 ##### 数据库
 
+在 `go/src` 目录下新建文件 `db.txt` 内容格式为 `username;password;tablename`
+
 ```html
-修改 go/src/net/net.go:415-417 为本地数据库信息
 数据库结构:
 	表名 userinfo
-	id(主键)		   int(11) 			AUTO_INCREMENT
+	id	 		    int(11) 		AUTO_INCREMENT
 	username		text	 		utf8mb4_unicode_ci
 	password		text	 		utf8mb4_unicode_ci
 	email			text	 		utf8mb4_unicode_ci
@@ -237,6 +238,7 @@ A:
 {
     type: 1, // 拉取地图信息 只在最开始出现一次
     value: {
+        time: 100, // 游戏总时长 (秒)
         col: 30,
         row: 30,
         m1: [default_row][default_col], // default_row default_col是地图总共大小
