@@ -1,14 +1,15 @@
 package net
 
 import (
-    // "fmt"
     "log"
     "os"
     "sync"
     "time"
     "net/http"
     "strconv"
+    "strings"
     "html/template"
+    "io/ioutil"
 
     "database/sql"
     _ "github.com/go-sql-driver/mysql"
@@ -429,16 +430,24 @@ func getScoreBoard(c echo.Context) error {
 
 
 func Run() {
-    var err error
-    dbuser := "root"
-    dbpass := "123"
-    dbname := "CodeWar"
+    _dbtxt, ioerr := ioutil.ReadFile("db.txt")
+    if ioerr != nil {
+        netLogger.Println(ioerr)
+        panic(ioerr)
+        return
+    }
+    var dberr error
+    dbconfig := strings.Split(strings.Trim(string(_dbtxt), "\n"), ";")
+    dbuser := dbconfig[0]
+    dbpass := dbconfig[1]
+    dbname := dbconfig[2]
     dbw = DbWorker{
         Dsn: dbuser + ":" + dbpass + "@tcp(localhost:3306)/" + dbname + "?charset=utf8mb4&parseTime=true&loc=Local",
     }
-    dbw.Db, err = sql.Open("mysql", dbw.Dsn)
-    if err != nil {
-        panic(err)
+    dbw.Db, dberr = sql.Open("mysql", dbw.Dsn)
+    if dberr != nil {
+        netLogger.Println(dberr)
+        panic(dberr)
         return
     }
     defer dbw.Db.Close()
@@ -463,7 +472,7 @@ func Run() {
     e.GET("/room/scoreboard", getScoreBoard)
 
     e.GET("/view/:roomtoken", view)
-    // e.Static("/", "public")
+    e.Static("/", "public")
     e.GET("/ws", wsocketView)
 
     e.GET("/", func(c echo.Context) error {
@@ -473,6 +482,18 @@ func Run() {
 }
 
 func init() {
-    netLogger = log.New(os.Stdout, "[net] ", log.Ldate | log.Ltime | log.Lshortfile)
-    dbLogger = log.New(os.Stdout, "[DB] ", log.Ldate | log.Ltime | log.Lshortfile)
+    netlogFile, netlogFileErr := os.OpenFile("netinfo.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+    if netlogFileErr != nil {
+        panic(netlogFileErr)
+        return
+    }
+    netLogger = log.New(netlogFile, "[net] ", log.Ldate | log.Ltime | log.Lshortfile)
+
+    dbLogFile, dbLogFileErr := os.OpenFile("dbinfo.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+    if dbLogFileErr != nil {
+        panic(dbLogFileErr)
+        return
+    }
+    dbLogger = log.New(dbLogFile, "[DB] ", log.Ldate | log.Ltime | log.Lshortfile)
+    // os.Stdout
 }

@@ -6,7 +6,7 @@ from CodeWar.Utils import CodeWar
 playernum = 1 # 玩家人数(创建房间需要)
 row = random.randint(30,90) # (创建房间需要)
 col = random.randint(30,90) # (创建房间需要)
-roomtoken = 'a2e789b22ec4821d84a853eba440eef2' # 加入房间需要
+roomtoken = '' # 加入房间需要
 
 chromePath = '' # 对于Windows用户可能需要填写Chrome安装路径.../chrome.exe
 username = 'test'

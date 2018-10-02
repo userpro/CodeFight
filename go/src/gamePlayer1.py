@@ -3,7 +3,7 @@ import random
 import webbrowser
 from CodeWar.Utils import CodeWar
 
-playernum = 2 # 玩家人数(创建房间需要)
+playernum = 1 # 玩家人数(创建房间需要)
 row = random.randint(30,90) # (创建房间需要)
 col = random.randint(30,90) # (创建房间需要)
 roomtoken = '' # 加入房间需要

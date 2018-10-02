@@ -1,7 +1,6 @@
 package fight
 
 import (
-    // "fmt"
     "os"
     "log"
     "time"
@@ -382,5 +381,10 @@ func WSGetGameInfo(roomToken string) *WSAction {
 }
 
 func init() {
-    fightLogger = log.New(os.Stdout, "[fight] ", log.Ldate | log.Ltime | log.Lshortfile)
+    flogFile, flogFileErr := os.OpenFile("fightinfo.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+    if flogFileErr != nil {
+        panic(flogFileErr)
+        return
+    }
+    fightLogger = log.New(flogFile, "[fight] ", log.Ldate | log.Ltime | log.Lshortfile)
 }
