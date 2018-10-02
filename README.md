@@ -237,6 +237,7 @@ A:
 {
     type: 1, // 拉取地图信息 只在最开始出现一次
     value: {
+        time: 100, // 游戏总时长 (秒)
         col: 30,
         row: 30,
         m1: [default_row][default_col], // default_row default_col是地图总共大小

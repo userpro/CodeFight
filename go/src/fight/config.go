@@ -38,7 +38,7 @@ const (
 
 /* 游戏设置 */
 const (
-    ScoreBoardKeepTime = time.Second * 10
+    ScoreBoardKeepTime = time.Second * 10 // 得分榜在游戏结束后对保持时间
     Default_login_timeout = time.Minute * 5   // 登录有效时限 (hour)
     Default_room_timeout  = 3   // 房间等待时限 (s)
     Default_player_num  = 16    // 房间玩家数量
@@ -49,11 +49,11 @@ const (
 /* 游戏设置 */
 const (
     default_action_interval = time.Millisecond * 500 // 每轮action的间隔
-    default_play_timeout  = time.Second * 100  // 游戏总时限 (s)
+    default_play_timeout  = time.Second * 180  // 游戏总时限 (s)
 
-    default_max_portal  = 10  // 地图能量泉数量
-    default_max_barback = 5   // 地图兵营数量
-    default_max_barrier = 10  // 地图障碍物数量
+    default_max_portal  = 10  // 地图 portal 数量
+    default_max_barback = 5   // 地图 barback 数量
+    default_max_barrier = 50  // 地图 barrier 数量
     
     default_portal_army = 20  // 初始 portal 军队数量
     default_barback_army= 20  // 初始 barback 军队数量

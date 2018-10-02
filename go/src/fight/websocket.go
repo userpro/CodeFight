@@ -5,8 +5,9 @@ import "sync"
 type (
     /* websocket */
     WSMapInfoRet struct {
-        Row       int     `json:"row,omitempty"`
-        Col       int     `json:"col,omitempty"`
+        GameTime  float64 `json:"time"`
+        Row       int     `json:"row"`
+        Col       int     `json:"col"`
         RoomToken string  `json:"roomtoken,omitempty"`
         M1    *[Default_row][Default_col]int  `json:"m1,omitempty"`
         M2    *[Default_row][Default_col]byte `json:"m2,omitempty"`
@@ -17,9 +18,9 @@ type (
     WSUserInfoRet struct {
         Uid    byte   `json:"id"`
         Uname  string `json:"name"`
-        Score  int    `json:"score,omitempty"`
-        Energy int    `json:"energy,omitempty"`
-        Status int    `json:"status,omitempty"`
+        Score  int    `json:"score"`
+        Energy int    `json:"energy"`
+        Status int    `json:"status"`
     }
 
     WSPoint struct {

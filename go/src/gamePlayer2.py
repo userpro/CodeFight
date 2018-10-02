@@ -6,7 +6,7 @@ from CodeWar.Utils import CodeWar
 playernum = 1 # 玩家人数(创建房间需要)
 row = random.randint(30,90) # (创建房间需要)
 col = random.randint(30,90) # (创建房间需要)
-roomtoken = '988ecc49ccc5423bf7a08e79300e7ea8' # 加入房间需要
+roomtoken = 'a2e789b22ec4821d84a853eba440eef2' # 加入房间需要
 
 chromePath = '' # 对于Windows用户可能需要填写Chrome安装路径.../chrome.exe
 username = 'test'
@@ -32,13 +32,15 @@ if __name__ == '__main__':
     # a.register() # 注册
     status = a.login()
     
-    if status == 1:
+    if status == 1: # status 为1表示登录成功
         if roomtoken != "":
             # 加入房间
             a.join(roomtoken=roomtoken)
         else:
             # 创建房间
             a.join(playernum=playernum, row=row, col=col)
+    elif status == 2:
+        print("Login before.")
     
     # 检测游戏是否开始
     while not a.isStart():
@@ -46,9 +48,12 @@ if __name__ == '__main__':
 
     view() # 展示web页面 (非必须)
 
-    # 游戏主循环 操作延时不要低于100ms 操作会累积
+    # 游戏主循环 move操作延时不要低于100ms 操作会累积
     # 获取初始位置(基地)
-    x, y = a.getBase()    
+    x, y = a.getBase()
+    # 获取地图大小
+    row, col = a.getMapSize()
+
     dir = 1
     while True:
         # 游戏已结束
@@ -56,7 +61,8 @@ if __name__ == '__main__':
             a.getScoreBoard()
             a.leave()
             break
-        # 策略
+
+        ### 以下为策略主体部分 ###
         res = a.query()
         time.sleep(3)
         if dir == 4: 
@@ -66,8 +72,8 @@ if __name__ == '__main__':
         a.move(x,y,1,dir)
         time.sleep(2)
         res = a.query()
-        # a.view()
         time.sleep(2)
+        ### 以上为策略猪蹄部分 ###
     
     a.logout()
 

@@ -358,6 +358,7 @@ func WSGetGameInfo(roomToken string) *WSAction {
     if !ok { return nil }
     mm := opt.m
     u := &WSMapInfoRet {
+        GameTime: default_play_timeout.Seconds(), // 游戏总时长
         Row: opt.row,
         Col: opt.col,
         RoomToken: opt.roomToken,

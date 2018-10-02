@@ -94,6 +94,10 @@ class CodeWar(object):
     def getBase(self):
         return (self.x, self.y)
 
+    # --* 返回地图大小 *--
+    def getMapSize(self):
+        return (self.row, self.col)
+
     # --* 移动 *--
     def move(self, x, y, radio, direction):
         payload = {
