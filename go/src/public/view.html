@@ -33,21 +33,21 @@
     var  _user_mask_ = 0x1f; // 0001 1111
     var  _type_mask_ = 0xe0; // 1110 0000
 
-    function isSpace(cell) { return cell&_type_mask_==_space_ }
-    function isBase(cell) { return cell&_type_mask_==_base_ }
-    function isBarback(cell) { return cell&_type_mask_==_barback_ }
-    function isPortal(cell) { return cell&_type_mask_==_portal_ }
-    function isBarrier(cell) { return cell&_type_mask_==_barrier_ }
-    function isSystem(cell) { return cell&_user_mask_==_system_ }
+    function isSpace(cell) { return (cell&_type_mask_)==_space_ }
+    function isBase(cell) { return (cell&_type_mask_)==_base_ }
+    function isBarback(cell) { return (cell&_type_mask_)==_barback_ }
+    function isPortal(cell) { return (cell&_type_mask_)==_portal_ }
+    function isBarrier(cell) { return (cell&_type_mask_)==_barrier_ }
+    function isSystem(cell) { return (cell&_user_mask_)==_system_ }
 
     function getUserId(cell) { return cell&_user_mask_ }
   </script>
 
   <script>
     var color_list = [
-      '#259073', '#041122', '#7FDA89', '#C8E98E',
-      '#E6F99D', '#DFBA69', '#33605A', '#91A398',
-      '#F38A8A', '#CDE9CA', '#A9C1D9', '#607890',
+      '#66CCCC', '#041122', '#CCFF66', '#FF99CC',
+      '#FFCC99', '#FF9933', '#663366', '#CC3333',
+      '#339966', '#CDE9CA', '#A9C1D9', '#607890',
       '#8E9E82', '#A3D95B', '#AAE3AB', '#442433',
       '#F6F0BC', '#F77825', '#D3CE3D', '#60B99A',
       '#F1EFA5', '#F85931', '#CE1836', '#A3A948',
@@ -65,18 +65,26 @@
     var userinfo = {};    // 用户信息
     var id_color = {};    // id于颜色对应
     var action_queue = [];// 数据更新队列
-
+    var mark = {}; //统计选手占有的格子数量 包括特殊类型的格子
+    var _ROW_ = 0; //有效行
+    var _COL_ = 0; //有效列
     function ViewInit(row, col) {
+      _ROW_ = row;
+      _COL_ = col;
       // 随机颜色分配
       for (let i = userinfo.length - 1; i >= 0; i--) {
         id_color[userinfo[i].id] = color_list[i];
       }
       resizeCanvas(row, col);
       drawBoard(row, col);
+      drawMap(row, col);
     }
 
     let BGCOLOR = 'white';
     let BORDER_COLOR = '#000'
+    let BARBACK_COLOR = '#990066';
+    let PORTAL_COLOR = '#009966';
+    let BARRIER_COLOR = '#000000';
     let cvs = document.getElementById('viewMap');
     let ctx = cvs.getContext('2d');
     let GRID_SIZE = 50;
@@ -99,14 +107,96 @@
       }
     }
 
-    // 填充 Cell 的背景色
-    function drawCell(x, y, uid) {
+    //绘制初始地图
+    function drawMap(row, col){
+      for(let i = 0; i< row; i++){
+        for(let j = 0; j< col; j++){
+          drawCellByCat(m2[i][j],i,j,m1[i][j]);
+        }
+      }
+    }
+
+    // 根据cell绘制内容
+    function drawCellByCat(cell,x,y,value){
+      if (isSpace(cell)&&getUserId(cell)===0x00) {
+            //空地，不处理
+        }else if (isSpace(cell)&&getUserId(cell)!==0x00) { 
+          //玩家占领空地
+          drawCell(x,y,getUserId(cell),value);
+        }else if (isBase(cell)) {
+          //玩家基地
+          drawArc(x,y,getUserId(cell),value);
+        }else if (isBarback(cell)) {
+          //军营
+          drawPolygon(x,y,getUserId(cell),value,4,BARBACK_COLOR)
+        }else if (isPortal(cell)) {
+          //据点
+          drawPolygon(x,y,getUserId(cell),value,6,PORTAL_COLOR)
+        }else if (isBarrier(cell)) {
+          //障碍物
+          drawPolygon(x,y,getUserId(cell),value,8,BARRIER_COLOR)
+        }else{
+          console.log(x+','+y+'我也不知道是什么');
+      }
+    }
+
+    //填入cell 兵力
+    function drawCellText(x,y,value){
+      ctx.font = "bold 15px 黑体";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(value,x*GRID_SIZE+(GRID_SIZE-15*value.toString().length)/2+5,y*GRID_SIZE+(GRID_SIZE+10)/2,50);
+    }
+
+    // 填充 Cell 的背景色 正方形
+    function drawCell(x, y, uid, value=0) {
       ctx.beginPath();
       ctx.strokeStyle = BORDER_COLOR; // 边框颜色
       ctx.fillStyle = id_color[uid];  // 背景色
       ctx.fillRect(x*GRID_SIZE, y*GRID_SIZE, GRID_SIZE, GRID_SIZE);
       ctx.closePath();
+      if (uid!==0x00) {
+        drawCellText(x,y,value);
+      }
     }
+
+    // 填充 Cell 的背景色 圆形
+    function drawArc(x, y, uid, value=0) {
+      ctx.beginPath();
+      ctx.strokeStyle = BORDER_COLOR; // 边框颜色
+      ctx.fillStyle = id_color[uid];  // 背景色
+      ctx.arc(x*GRID_SIZE+GRID_SIZE/2, y*GRID_SIZE+GRID_SIZE/2, GRID_SIZE/2,0,2*Math.PI,false);
+      ctx.fill();
+      ctx.closePath();
+      drawCellText(x,y,value)
+    }
+
+    //绘制多边形
+    function drawPolygon(x, y, uid, value, num, color=null){
+      var r = GRID_SIZE/2;//图形的半径
+      x = x * GRID_SIZE;
+      y = y * GRID_SIZE;
+      var width = 5;
+      var strokeStyle = BORDER_COLOR; // 边框颜色
+      var fillStyle = uid==0x00?color:id_color[uid];  // 背景色
+      //开始路径
+      ctx.beginPath();
+      var startX = x + r + r * Math.cos(2*Math.PI*0/num);
+      var startY = y + r + r * Math.sin(2*Math.PI*0/num);
+      ctx.moveTo(startX, startY);
+      for(var i = 1; i <= num; i++) {
+          var newX = x + r + r * Math.cos(2*Math.PI*i/num);
+          var newY = y + r + r * Math.sin(2*Math.PI*i/num);
+          ctx.lineTo(newX, newY);
+      }
+      ctx.fillStyle = fillStyle;
+      ctx.fill();
+      ctx.closePath();
+      //路径闭合
+       //兵力为0不显示，兼容障碍物
+      if (value!=0) {
+        drawCellText(x/GRID_SIZE,y/GRID_SIZE,value);
+      }
+  }
 
   </script>
 
@@ -131,7 +221,7 @@
     let flag = true;
     ws.onmessage = function(evt) {
       let recvData = JSON.parse(evt.data);
-      console.log(recvData);
+      // console.log(recvData);
       if (flag) {
         flag = false;
         let row = recvData['value']['row'],
@@ -146,7 +236,89 @@
       }
     }
 
-    // console.log(rtk)
+    //处理type2
+    function handelType2(recvData){
+      for(let key in recvData['value']['loc']) {
+        let cell = recvData['value']['loc'][key];
+        drawCellByCat(cell['m2'],cell['x'],cell['y'],cell['m1']);
+        //进行分数统计
+        let oldUid = getUserId(m2[cell['x']][cell['y']]);
+        let nowUid = getUserId(cell['m2']);
+        if (oldUid!==nowUid) {
+          //先看一下键值是否存在
+          if(!mark.hasOwnProperty(oldUid)){
+            mark[oldUid] = 1;
+          }
+          if(!mark.hasOwnProperty(nowUid)){
+            mark[nowUid] = 1;
+          }
+          //如果oldUid==0x00，直接加一
+          if (getUserId(m2[cell['x']][cell['y']] == 0x00)) {
+            mark[nowUid] += 1;
+          }else{
+            //如果oldUid!==0x00，old减一 now加一
+            mark[oldUid] -= 1;
+            mark[nowUid] += 1;
+          }
+        }
+        //更新本地存储
+        m1[cell['x']][cell['y']] = cell['m1'];
+        m2[cell['x']][cell['y']] = cell['m2'];
+      }
+      //刷新成绩
+      showMark();
+    }
+
+    //处理type3
+    function handelType3(){
+      // 全图m1不为0的Cell加1 (除了barrier)
+      for(let i = 0; i< _ROW_; i++){
+        for(let j = 0; j< _COL_; j++){
+          if (m1[i][j]!==0) {
+            m1[i][j] += 1;
+            drawCellByCat(m2[i][j],i,j,m1[i][j]);
+          }
+        }
+      }
+    }
+
+    //处理type4
+    function handelType4(){
+      // 全图特殊cell加1 (军营, 基地)
+      for(let i = 0; i< _ROW_; i++){
+        for(let j = 0; j< _COL_; j++){
+          if (isBase(m2[i][j])||isBarback(m2[i][j])) {
+            m1[i][j] += 1;
+            drawCellByCat(m2[i][j],i,j,m1[i][j]);
+          }
+        }
+      }
+    }
+
+    //处理缓存队列里的数据
+    function handleActionQueue(){　 
+      let recvData = action_queue.shift();
+      if (recvData!==undefined) {
+        //在这里处理数据
+        if (recvData['type']===2) {
+          handelType2(recvData);
+        }else if (recvData['type']===3) {
+          handelType3();
+        }else if (recvData['type']===4) {
+          handelType4();
+        }else if (recvData['type']===0) {
+          alert("游戏结束！");
+        }
+      }
+　    setTimeout("handleActionQueue()", 0); 
+     } 
+    handleActionQueue();
+
+    //显示玩家分数
+    function showMark(){
+      console.log('成绩：',mark);
+    }
+
   </script>
 </body>
 
