@@ -478,7 +478,7 @@ func Run() {
     e.GET("/", func(c echo.Context) error {
         return c.Render(http.StatusOK, "index.html", "")
     })
-    e.Logger.Fatal(e.Start(":8080"))
+    e.Logger.Fatal(e.Start(":52333"))
 }
 
 func init() {
