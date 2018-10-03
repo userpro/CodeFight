@@ -430,17 +430,17 @@ func getScoreBoard(c echo.Context) error {
 
 
 func Run() {
-    _dbtxt, ioerr := ioutil.ReadFile("db.txt")
+    _configtxt, ioerr := ioutil.ReadFile("config.txt")
     if ioerr != nil {
         netLogger.Println(ioerr)
         panic(ioerr)
         return
     }
     var dberr error
-    dbconfig := strings.Split(strings.Trim(string(_dbtxt), "\n"), ";")
-    dbuser := dbconfig[0]
-    dbpass := dbconfig[1]
-    dbname := dbconfig[2]
+    config := strings.Split(strings.Trim(string(_configtxt), "\n"), ";")
+    dbuser := config[0]
+    dbpass := config[1]
+    dbname := config[2]
     dbw = DbWorker{
         Dsn: dbuser + ":" + dbpass + "@tcp(localhost:3306)/" + dbname + "?charset=utf8mb4&parseTime=true&loc=Local",
     }
@@ -478,7 +478,7 @@ func Run() {
     e.GET("/", func(c echo.Context) error {
         return c.Render(http.StatusOK, "index.html", "")
     })
-    e.Logger.Fatal(e.Start(":52333"))
+    e.Logger.Fatal(e.Start(":" + config[3]))
 }
 
 func init() {

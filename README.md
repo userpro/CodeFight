@@ -25,7 +25,7 @@ python:
 
 ##### 数据库
 
-在 `go/src` 目录下新建文件 `db.txt` 内容格式为 `username;password;tablename`
+在 `go/src` 目录下新建文件 `db.txt` 内容格式为 `username;password;tablename;web_server_port`  (⚠️: 第四项是 web 服务器的监听端口)
 
 ```html
 数据库结构:
