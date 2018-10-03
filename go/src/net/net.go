@@ -482,14 +482,14 @@ func Run() {
 }
 
 func init() {
-    netlogFile, netlogFileErr := os.OpenFile("netinfo.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+    netlogFile, netlogFileErr := os.OpenFile("netlog.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
     if netlogFileErr != nil {
         panic(netlogFileErr)
         return
     }
     netLogger = log.New(netlogFile, "[net] ", log.Ldate | log.Ltime | log.Lshortfile)
 
-    dbLogFile, dbLogFileErr := os.OpenFile("dbinfo.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+    dbLogFile, dbLogFileErr := os.OpenFile("dblog.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
     if dbLogFileErr != nil {
         panic(dbLogFileErr)
         return

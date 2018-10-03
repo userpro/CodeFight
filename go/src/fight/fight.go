@@ -381,7 +381,7 @@ func WSGetGameInfo(roomToken string) *WSAction {
 }
 
 func init() {
-    flogFile, flogFileErr := os.OpenFile("fightinfo.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+    flogFile, flogFileErr := os.OpenFile("fightlog.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
     if flogFileErr != nil {
         panic(flogFileErr)
         return
