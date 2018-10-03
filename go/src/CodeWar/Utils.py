@@ -24,7 +24,7 @@ class CodeWar(object):
         }
         payload = urllib.parse.urlencode(data
             )
-        _register = requests.post(self.url + "/user", params=payload).json()
+        _register = requests.post(self.url + "/user", params=payload, timeout=5).json()
         
         print('[register] ', _register)
         if _register['status'] != 1:
@@ -34,7 +34,7 @@ class CodeWar(object):
 
     # --* 登录 *--
     def login(self):
-        _login = requests.get(self.url + "/user?username=" + self.username + "&password=" + self.password).json()
+        _login = requests.get(self.url + "/user?username=" + self.username + "&password=" + self.password, timeout=5).json()
 
         print('[login] ', _login)
         if _login['status'] == 1:
@@ -64,7 +64,7 @@ class CodeWar(object):
 
         payload = urllib.parse.urlencode(data)
 
-        _join = requests.post(self.url + "/room", params=payload).json()
+        _join = requests.post(self.url + "/room", params=payload, timeout=5).json()
         
         print('[join] ', _join)
         if _join['status'] == 1:
@@ -80,7 +80,7 @@ class CodeWar(object):
 
     # --* 获取游戏是否开始以及基地坐标 *--
     def isStart(self):
-        _isStart = requests.get(self.url + "/room/start?usertoken=" + self.usertoken + "&roomtoken=" + self.roomtoken).json()
+        _isStart = requests.get(self.url + "/room/start?usertoken=" + self.usertoken + "&roomtoken=" + self.roomtoken, timeout=5).json()
         
         print('[isStart] ', _isStart)
         if _isStart['status'] == 1:
@@ -110,7 +110,7 @@ class CodeWar(object):
             }
         }
         headers = {'Content-Type': 'application/json'}
-        _move = requests.put(self.url + "/room", headers=headers, data=json.dumps(payload)).json()
+        _move = requests.put(self.url + "/room", headers=headers, data=json.dumps(payload), timeout=5).json()
 
         print('[move] ', _move)
         # 返回 1 => 成功 
@@ -133,7 +133,7 @@ class CodeWar(object):
         }
 
         headers = {'Content-Type': 'application/json'}
-        _query = requests.get(self.url + "/room", headers=headers, data=json.dumps(payload)).json()
+        _query = requests.get(self.url + "/room", headers=headers, data=json.dumps(payload), timeout=5).json()
         
         print('[query] ', _query)
 
@@ -147,7 +147,7 @@ class CodeWar(object):
 
     # --* 查询得分状态(少一点 耗性能) *--
     def getScoreBoard(self):
-        _scoreboard = requests.get(self.url + "/room/scoreboard?roomtoken=" + self.roomtoken).json()
+        _scoreboard = requests.get(self.url + "/room/scoreboard?roomtoken=" + self.roomtoken, timeout=5).json()
 
         print('[getScoreBoard] ', _scoreboard)
         
@@ -161,7 +161,7 @@ class CodeWar(object):
 
     # --* 离开房间 *--
     def leave(self):
-        _leave = requests.delete(self.url + "/room?usertoken=" + self.usertoken + "&roomtoken=" + self.roomtoken).json()
+        _leave = requests.delete(self.url + "/room?usertoken=" + self.usertoken + "&roomtoken=" + self.roomtoken, timeout=5).json()
         self.roomtoken = ''
 
         print('[leave]', _leave)
@@ -170,7 +170,7 @@ class CodeWar(object):
     def logout(self, usertoken=''):
         if usertoken == '':
             usertoken = self.usertoken
-        _logout = requests.delete(self.url + "/user?usertoken="+usertoken)
+        _logout = requests.delete(self.url + "/user?usertoken="+usertoken, timeout=5)
         self.usertoken = ''
 
         print('[logout]')
