@@ -6,7 +6,19 @@
 
 ### 游戏介绍
 
-简单的代码操作兵力对战游戏, 受到  [generals.io]() 以及知乎上 Color Fight 启发 .  Go fight! 
+简单的代码对战游戏, 受到  [generals.io]() 以及知乎上 Color Fight 启发 .  Go fight! 
+
+游戏中兵力即 Cell 中的数值, 两个不同阵营的兵力交战时, 结果为相减 .
+
+游戏中有 兵营(barback)、据点(portal)、障碍物(barrier)、基地(base) 四种建筑物
+
+兵营: 间隔较小轮数增加在其中的兵力
+
+据点: 提升据点内兵力的实力 (即在其中的兵力相当于乘以一个因子, 出了据点即失效)
+
+障碍物: 无法通过与摧毁之地
+
+基地: 每个玩家仅一个, 被摧毁即失败
 
 ### 如何测试/运行
 
@@ -25,7 +37,7 @@ python:
 
 ##### 数据库
 
-在 `go/src` 目录下新建文件 `db.txt` 内容格式为 `username;password;tablename;web_server_port`  (⚠️: 第四项是 web 服务器的监听端口)
+在 `go/src` 目录下新建文件 `config.txt` 内容格式为 `dbuser;dbpass;dbtablename;web_server_port`  (⚠️: 第四项是 web 服务器的监听端口)
 
 ```html
 数据库结构:
@@ -156,8 +168,8 @@ e.GET("/room/scoreboard", getScoreBoard)
 | URL        | /room                                                        |
 | 参数       | 加入房间:<br />roomtoken=XXX<br />创建房间:<br />playernum=X&row=X&col=X |
 | 示例       | 加入房间:<br />/room?roomtoken=XXXX<br />创建房间:<br />/room?playernum=X&row=X&col=X |
-| 返回值     | {<br />    "usertoken": "XXX",<br />    "roomtoken": "XXX",<br />    "playernum": "XXX",<br />    "row": XX,<br />    "col":XX,<br />    "message": "XXX",<br />    "status": X<br />} |
-| 返回值说明 | 返回所加入房间的信息                                         |
+| 返回值     | {<br />    "id": X,<br />    "usertoken": "XXX",<br />    "roomtoken": "XXX",<br />    "playernum": "XXX",<br />    "row": XX,<br />    "col":XX,<br />    "message": "XXX",<br />    "status": X<br />} |
+| 返回值说明 | 返回所加入房间的信息, <br />id为本局游戏你的id               |
 
 ###### leave
 

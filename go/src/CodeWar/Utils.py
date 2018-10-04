@@ -1,21 +1,84 @@
 import urllib.parse
 import requests
 import json
+import time
+import webbrowser
+
+class WarUnit(object):
+    """解析 Cell 工具类 用于解析地图的 m2 图层"""
+    def __init__(self):
+        super(WarUnit, self).__init__()
+        # 地形 Cell Type
+        self.SPACE   = 0x00 # 000- ----
+        self.BASE    = 0x20 # 001- ----
+        self.BARBACK = 0x40 # 010- ----
+        self.PORTAL  = 0x60 # 011- ----
+        self.BARRIER = 0x80 # 100- ----
+        # 阵营 User Id
+        self.SYSTEM  = 0x00 # ---- -000
+        self.VISITOR = 0x01 # ---- -001
+        # mask
+        self.USER_MASK= 0x1f # 0001 1111
+        self.TYPE_MASK= 0xe0 # 1110 0000
+
+    def isSpace(self, cell):
+        return cell & TYPE_MASK == SPACE
+
+    def isBase(self, cell):
+        return cell & TYPE_MASK == BASE 
+
+    def isBarback(self, cell):
+        return cell & TYPE_MASK == BARBACK 
+
+    def isPortal(self, cell):
+        return cell & TYPE_MASK == PORTAL 
+
+    def isBarrier(self, cell):
+        return cell & TYPE_MASK == BARRIER 
+
+    def isSystem(self, cell):
+        return cell & USER_MASK == SYSTEM 
+
+    # --* 设置 Cell 类型 *--
+    def setCellType(self, cell, typ):
+        return cell & USER_MASK | typ 
+
+    # --* 设置 Cell 所有者id *--
+    def setCellId(self, cell, uid):
+        return cell & TYPE_MASK | uid 
+
+    # --* 获取 Cell 所有者id *--
+    def getUserId(self, cell):
+        return cell & USER_MASK 
+
 
 class CodeWar(object):
-    """docstring for War"""
-    def __init__(self, url, port, username, password, email):
+    """玩家操作类"""
+    def __init__(self, url, port, username, password, email, chrome=''):
         super(CodeWar, self).__init__()
+        self.chrome = chrome # chrome path
+
         self.url = 'http://' + str(url) + ':' + str(port)
         self.username = username
         self.password = password
         self.email = email
         self.playernum = 0
+
+        self.id = 0
         self.usertoken = self.roomtoken = ''
         self.x = self.y = -1
         self.row = self.col = 0
 
+        self.log = "" # 保留错误信息
+
+    # --* 返回log信息 *--
+    def log(self):
+        print(self.log)
+        return self.log
+
     # --* 注册 *--
+    # 返回值: status
+    # status 1 => 注册成功  0 => 注册失败
     def register(self):
         data = {
             'username': self.username,
@@ -28,11 +91,14 @@ class CodeWar(object):
         
         print('[register] ', _register)
         if _register['status'] != 1:
+            self.log = _register['message']
             print('<Error>[register] ', _register['message'])
-        # 返回 1 => 注册成功
+        
         return _register['status']
 
     # --* 登录 *--
+    # 返回值: status
+    # status: 1 => 登录成功  2 =>断线重连成功
     def login(self):
         _login = requests.get(self.url + "/user?username=" + self.username + "&password=" + self.password, timeout=5).json()
 
@@ -40,14 +106,22 @@ class CodeWar(object):
         if _login['status'] == 1:
             self.usertoken = _login['usertoken']
         elif _login['status'] == 2:
+            self.id = _login['id']
             self.usertoken = _login['usertoken']
             self.roomtoken = _login['roomtoken']
         else:
+            self.log = _login['message']
             print('<Error>[login] ', _login['message'])
-        # 返回状态 1=>登录成功  2=>断线重连成功
+        
         return _login['status']
 
+    # --* 是否已经在room中 *--
+    def isInRoom(self):
+        return self.roomtoken != ''
+
     # --* 加入或者创建房间 *--
+    # 返回值: status
+    # status 1 => join 成功  0 => 失败
     def join(self, roomtoken='', playernum=1, row=30, col=30):
         data = {
             'usertoken': self.usertoken,
@@ -68,17 +142,20 @@ class CodeWar(object):
         
         print('[join] ', _join)
         if _join['status'] == 1:
+            self.id = _join['id']
             self.roomtoken = _join['roomtoken']
             self.row = _join['row']
             self.col = _join['col']
             self.playernum = _join['playernum']
         else:
+            self.log = _join['message']
             print('<Error>[join] ', _join['message'])
 
-        # 返回 1 => join 成功
         return _join['status']
 
     # --* 获取游戏是否开始以及基地坐标 *--
+    # 返回值: status
+    # status 1 => start  0 => not start
     def isStart(self):
         _isStart = requests.get(self.url + "/room/start?usertoken=" + self.usertoken + "&roomtoken=" + self.roomtoken, timeout=5).json()
         
@@ -86,8 +163,9 @@ class CodeWar(object):
         if _isStart['status'] == 1:
             self.x = _isStart['x']
             self.y = _isStart['y']
-            
-        # 返回 1 => start  0 => not start
+            self.row = _isStart['row']
+            self.col = _isStart['col']
+        
         return _isStart['status']
 
     # --* 返回基地坐标 *--
@@ -99,6 +177,9 @@ class CodeWar(object):
         return (self.row, self.col)
 
     # --* 移动 *--
+    # 返回值: status
+    # status 1 => 成功  0 => 失败
+    # PS: 这个返回值没啥用
     def move(self, x, y, radio, direction):
         payload = {
             'usertoken': self.usertoken,
@@ -112,13 +193,13 @@ class CodeWar(object):
         headers = {'Content-Type': 'application/json'}
         _move = requests.put(self.url + "/room", headers=headers, data=json.dumps(payload), timeout=5).json()
 
-        print('[move] ', _move)
-        # 返回 1 => 成功 
-        # PS: 这个返回值没啥用
-        return _move['status']
+        # print('[move] ', _move)
+        return (_move['length'], _move['status'])
 
 
     # --* 查询 *--
+    # 返回值 (result, status)
+    # status: 1 => 成功  0 => 失败
     def query(self, x=-1, y=-1):
         if x == -1: x = self.x
         if y == -1: y = self.y
@@ -137,23 +218,23 @@ class CodeWar(object):
         
         print('[query] ', _query)
 
-        # 返回值 (result, status)
-        # status 1 => 成功
         if _query['status'] != 1:
+            self.log = _query['message']
             print('<Error>[_query] ', _query['message'])
             return ({}, _query['status'])
         
         return (_query['eyeshot'], _query['status'])
 
     # --* 查询得分状态(少一点 耗性能) *--
+    # 返回值 (result, status)
+    # status: 1 => 成功  0 => 失败
     def getScoreBoard(self):
         _scoreboard = requests.get(self.url + "/room/scoreboard?roomtoken=" + self.roomtoken, timeout=5).json()
 
         print('[getScoreBoard] ', _scoreboard)
         
-        # 返回值 (result, status)
-        # status 1 => 成功
         if _scoreboard['status'] != 1:
+            self.log = '<Error>[getScoreBoard]'
             print('<Error>[getScoreBoard]')
             return ({}, _scoreboard['status'])
         
@@ -175,5 +256,38 @@ class CodeWar(object):
 
         print('[logout]')
 
+    # --* 浏览器打开view页面 观看对战情况 *--
+    def view(self):
+        openUrl = self.url+'/view/'+self.roomtoken
+        if self.chrome != '':
+            webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(self.chrome))
 
+        try:
+            webbrowser.get('chrome').open(openUrl, new=0, autoraise=True)
+        except Exception as e:
+            webbrowser.open(openUrl, new=0, autoraise=True)    
+
+
+    # 待施工.....
+    # 
+    def run(self, roomtoken='', playernum=1, row=30, col=30):
+        # 登录
+        if not self.login():
+            self.log()
+            return
+        
+        # 已经在一个房间中
+        if not self.isInRoom():
+            # 加入roomtoken 的房间
+            if roomtoken != '':
+                self.join(roomtoken=roomtoken)
+            # 创建房间
+            else:
+                self.join(playernum=playernum, row=row, col=col)
+        
+        # 检测游戏是否开始
+        while not self.isStart():
+            time.sleep(3)
+
+        self.view() # 展示web页面 (非必须)
 

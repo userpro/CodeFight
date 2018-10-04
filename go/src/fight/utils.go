@@ -31,6 +31,7 @@ func (opt *fOpts) join(user *fUser) (int, bool) {
     if len(opt.userInfo) > opt.playerNum { return RM_full_, false }
     if user.status != US_online_ { return RM_unauthorized_, false }
     if user.roomToken == opt.roomToken { return RM_already_join_, false }
+
     user.id = opt.accId
     user.roomToken = opt.roomToken
     user.score = 0; user.energy = 0
@@ -142,18 +143,20 @@ func (opt *fOpts) generator() bool {
 
 func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint, *fPoint, bool) {
     mm := opt.m
-    /* 调出判断 */
-    src.m1 = mm.m1[src.x][src.y]
-    src.m2 = mm.m2[src.x][src.y]
+
+    /* 判断移动是否合法 */
     if !checkLoc(opt, src) { 
         fightLogger.Println("[Move] Invalid current Point!")
         return nil,nil,false 
     }
 
+    /* 调出判断 */
+    src.m1 = mm.m1[src.x][src.y]
+    src.m2 = mm.m2[src.x][src.y]
     srcUid  := getUserId(src.m2)
 
     if srcUid != user.id { 
-        fightLogger.Println("[Move] Not belong to you!")
+        fightLogger.Println("[Move] Not belong to you! src: ", srcUid, " your id: ", user.id)
         return nil,nil,false 
     }
     if isBarrier(src.m2) { 
@@ -168,7 +171,7 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
     /* 调入判断 */
     dest := getNextPoint(src, direction)
     if !checkLoc(opt, dest) { 
-        // fightLogger.Println("[Move] Invalid next Point!")
+        fightLogger.Println("[Move] Invalid next Point!")
         return nil,nil,false 
     }
     dest.m1 = mm.m1[dest.x][dest.y]
@@ -349,14 +352,14 @@ func getOpts(roomToken string) (*fOpts, bool) {
 func isPlaying(opt *fOpts) bool { return opt.playing }
 
 // 两种可能 1.游戏人数不够未开始 2.房间不存在
-// (int=>x, int=>y, bool)
-func IsStart(userToken, roomToken string) (int, int, bool) {
+// (int=>x, int=>y, int=>row, int=>col, bool)
+func IsStart(userToken, roomToken string) (int, int, int, int, bool) {
     user, ok := getUser(userToken)
-    if !ok { return -1, -1, false }
+    if !ok { return -1, -1, -1, -1, false }
     room, ok := getOpts(roomToken)
-    if !ok { return -1, -1, false }
-    if room.playing { return user.baseLoc.X, user.baseLoc.Y, true }
-    return -1, -1, false
+    if !ok { return -1, -1, -1, -1, false }
+    if room.playing { return user.baseLoc.X, user.baseLoc.Y, room.row, room.col, true }
+    return -1, -1, -1, -1, false
 }
 
 func (mm *fMap)removeBase(target Point) {

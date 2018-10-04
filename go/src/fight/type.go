@@ -52,7 +52,7 @@ type (
 
     /* net */
     JoinRet struct {
-        Uid       byte
+        Id       byte
         PlayerNum int
         Row, Col  int
         RoomToken string

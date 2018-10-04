@@ -88,7 +88,7 @@ func Join(userToken, roomToken string) (interface{}, int, bool) {
     status, joinok := opt.join(user)
     if joinok {
         return &JoinRet{
-            Uid: user.id,
+            Id:  user.id,
             PlayerNum: opt.playerNum,
             Row: opt.row,
             Col: opt.col,

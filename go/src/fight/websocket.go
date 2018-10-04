@@ -71,8 +71,15 @@ func (ws *WSChannel)WSCancel(token string) {
     ws.count--
 }
 
+func wsRecovery() {
+    if r := recover(); r != nil {
+        fightLogger.Println("[websocket] recovered: ", r)
+    }
+}
+
 func (ws *WSChannel)WSBroadcast(data *WSAction) {
     ws.Ch.Range(func(k, v interface{}) bool {
+        defer wsRecovery()
         _v := v.(chan *WSAction)
         _v <- data
         return true

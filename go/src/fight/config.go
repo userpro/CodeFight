@@ -49,7 +49,7 @@ const (
 /* 游戏设置 */
 const (
     default_action_interval = time.Millisecond * 500 // 每轮action的间隔
-    default_play_timeout  = time.Second * 180  // 游戏总时限 (s)
+    default_play_timeout  = time.Second * 600  // 游戏总时限 (s)
 
     default_max_portal  = 10  // 地图 portal 数量
     default_max_barback = 5   // 地图 barback 数量
@@ -78,8 +78,8 @@ const (
     _portal_  = 0x60 // 011- ----
     _barrier_ = 0x80 // 100- ----
     /* 阵营 User Id */
-    _system_  = 0x00 // ---- -000
-    _visitor_ = 0x01 // ---- -001
+    _system_  = 0x00 // ---0 0000
+    _visitor_ = 0x01 // ---0 0001
 
     _user_mask_ = 0x1f // 0001 1111
     _type_mask_ = 0xe0 // 1110 0000
