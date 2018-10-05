@@ -194,7 +194,9 @@ class CodeWar(object):
         _move = requests.put(self.url + "/room", headers=headers, data=json.dumps(payload), timeout=5).json()
 
         # print('[move] ', _move)
-        return (_move['length'], _move['status'])
+        if _move['status'] == 1:
+            return (_move['length'], _move['status'])
+        return _move['status']
 
 
     # --* 查询 *--

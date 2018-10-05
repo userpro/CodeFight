@@ -70,14 +70,10 @@ if __name__ == '__main__':
         elif dir == 2: y = y + 1
         elif dir == 3: x = x + 1
         elif dir == 4: y = y - 1
-        if x <= 0: 
-            x = 0
-        if x > row: 
-            x = row - 1
-        if y <= 0: 
-            y = 0
-        if y > col: 
-            y = col - 1
+        if x <= 0: x = 0
+        if x > row: x = row - 1
+        if y <= 0: y = 0
+        if y > col: y = col - 1
         time.sleep(1)
         ### 以上为策略猪蹄部分 ###
     

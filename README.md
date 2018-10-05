@@ -215,8 +215,8 @@ e.GET("/room/scoreboard", getScoreBoard)
 | URL        | /room/start                                                  |
 | 参数       | usertoken=XXX&roomtoken=XXX                                  |
 | 示例       | /room/start?usertoken=XXX&roomtoken=XXX                      |
-| 返回值     | {<br />    "x": 1,<br />    "y": 2,<br />    "status": 1<br />} |
-| 返回值说明 | x, y 为你初始坐标, 也是你的Base坐标<br /> (注意 x y 仅当 status 为 1 时存在) |
+| 返回值     | {<br />    "x": 1,<br />    "y": 2,<br />    "row": 30,<br />    "col": 30,<br />    "status": 1<br />} |
+| 返回值说明 | x, y 为你初始坐标, 也是你的Base坐标<br />row, col 即 map 尺寸 |
 
 ###### getScoreBoard
 
@@ -238,7 +238,7 @@ e.GET("/room/scoreboard", getScoreBoard)
 
 流程如下:
 
-1. 客户端 send => roomtoken到服务器 (注意 token 是通过模版标签嵌入到页面的)
+1. 客户端 send => roomtoken到服务器 (注意 token 是通过模版标签`{{.}}`嵌入到页面的)
 2. 客户端 receive <=游戏基本信息A( json格式数据)
 3. 客户端 receive <= 每次操作B( json格式数据)
 
