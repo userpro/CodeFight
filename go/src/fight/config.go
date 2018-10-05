@@ -48,7 +48,7 @@ const (
 
 /* 游戏设置 */
 const (
-    default_action_interval = time.Millisecond * 500 // 每轮action的间隔
+    default_action_interval = time.Millisecond * 200 // 每轮action的间隔
     default_play_timeout  = time.Second * 600  // 游戏总时限 (s)
 
     default_max_portal  = 10  // 地图 portal 数量

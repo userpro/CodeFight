@@ -4,10 +4,10 @@ import json
 import time
 import webbrowser
 
-class WarUnit(object):
+class MapUnit(object):
     """解析 Cell 工具类 用于解析地图的 m2 图层"""
     def __init__(self):
-        super(WarUnit, self).__init__()
+        super(MapUnit, self).__init__()
         # 地形 Cell Type
         self.SPACE   = 0x00 # 000- ----
         self.BASE    = 0x20 # 001- ----
@@ -22,26 +22,26 @@ class WarUnit(object):
         self.TYPE_MASK= 0xe0 # 1110 0000
 
     def isSpace(self, cell):
-        return cell & TYPE_MASK == SPACE
+        return cell & self.TYPE_MASK == self.SPACE
 
     def isBase(self, cell):
-        return cell & TYPE_MASK == BASE 
+        return cell & self.TYPE_MASK == self.BASE 
 
     def isBarback(self, cell):
-        return cell & TYPE_MASK == BARBACK 
+        return cell & self.TYPE_MASK == self.BARBACK 
 
     def isPortal(self, cell):
-        return cell & TYPE_MASK == PORTAL 
+        return cell & self.TYPE_MASK == self.PORTAL 
 
     def isBarrier(self, cell):
-        return cell & TYPE_MASK == BARRIER 
+        return cell & self.TYPE_MASK == self.BARRIER 
 
     def isSystem(self, cell):
-        return cell & USER_MASK == SYSTEM 
+        return cell & self.USER_MASK == self.SYSTEM 
 
     # --* 设置 Cell 类型 *--
     def setCellType(self, cell, typ):
-        return cell & USER_MASK | typ 
+        return cell & self.USER_MASK | typ 
 
     # --* 设置 Cell 所有者id *--
     def setCellId(self, cell, uid):
@@ -49,13 +49,14 @@ class WarUnit(object):
 
     # --* 获取 Cell 所有者id *--
     def getUserId(self, cell):
-        return cell & USER_MASK 
+        return cell & self.USER_MASK 
 
 
 class CodeWar(object):
     """玩家操作类"""
     def __init__(self, url, port, username, password, email, chrome=''):
         super(CodeWar, self).__init__()
+        self.MapUnit = MapUnit()
         self.chrome = chrome # chrome path
 
         self.url = 'http://' + str(url) + ':' + str(port)
@@ -75,6 +76,10 @@ class CodeWar(object):
     def log(self):
         print(self.log)
         return self.log
+
+    # --* 检验point合法性 *--
+    def check(self, x, y):
+        return x>=0 and y>=0 and x<self.row and y<self.col
 
     # --* 注册 *--
     # 返回值: status
@@ -270,13 +275,12 @@ class CodeWar(object):
             webbrowser.open(openUrl, new=0, autoraise=True)    
 
 
-    # 待施工.....
-    # 
+    # run
     def run(self, roomtoken='', playernum=1, row=30, col=30):
         # 登录
         if not self.login():
             self.log()
-            return
+            return False
         
         # 已经在一个房间中
         if not self.isInRoom():
@@ -287,9 +291,15 @@ class CodeWar(object):
             else:
                 self.join(playernum=playernum, row=row, col=col)
         
+        cnt = 0
         # 检测游戏是否开始
         while not self.isStart():
             time.sleep(3)
+            cnt = cnt + 1
+            if cnt == 10:
+                print("超时未开始")
+                self.leave()
+                return False
 
         self.view() # 展示web页面 (非必须)
-
+        return True

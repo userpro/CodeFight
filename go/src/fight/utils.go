@@ -22,8 +22,10 @@ func (qry *fQueryCounter) reset() {
     qry.mu.Unlock()
 }
 
-// Return Result: 
-//  RM_playing_  RM_full_  RM_unauthorized_  RM_already_join_  RM_playing_  RM_joinable_
+/*  
+    Return Result: 
+    RM_playing_  RM_full_  RM_unauthorized_  RM_already_join_  RM_playing_  RM_joinable_
+*/
 func (opt *fOpts) join(user *fUser) (int, bool) {
     opt.mu.Lock()
     defer opt.mu.Unlock()
@@ -41,8 +43,8 @@ func (opt *fOpts) join(user *fUser) (int, bool) {
 
     /* 人数满足 游戏开始 */
     if len(opt.userInfo) == opt.playerNum { 
-        ok := opt.generator() 
-        if !ok { fightLogger.Println("[Join] generator Failed.") }
+        genOk := opt.generator() 
+        if !genOk { fightLogger.Println("[Join] generator Failed.") }
         opt.playing = true
         for _, v := range opt.userInfo {
             v.status = US_playing_
@@ -53,7 +55,7 @@ func (opt *fOpts) join(user *fUser) (int, bool) {
     return RM_joinable_, true
 }
 
-// 游戏开始 生成地图 分配玩家
+/* 游戏开始 生成地图 分配玩家 */
 func (opt *fOpts) generator() bool {
     fightLogger.Println("[generator] OK!")
     rand.Seed(time.Now().Unix())
@@ -62,7 +64,7 @@ func (opt *fOpts) generator() bool {
     mp.mu.Lock()
     defer mp.mu.Unlock()
 
-    // 随机数不应该小于最大值的1/2
+    /* 随机数不应该小于最大值的1/2 */
     portalNum := rand.Intn(default_max_portal) + 1
     if portalNum < default_max_portal / 2 { portalNum *= 2 }
 
@@ -72,7 +74,7 @@ func (opt *fOpts) generator() bool {
     barrierNum := rand.Intn(default_max_barrier) + 1
     if barrierNum < default_max_barrier / 2 { barrierNum *= 2 }
 
-    // 随机 portal 坐标
+    /* 随机 portal 坐标 */
     cnt := 0
     for {
         if cnt >= portalNum { break }
@@ -86,7 +88,7 @@ func (opt *fOpts) generator() bool {
         }
     }
 
-    // 随机 barback 坐标
+    /* 随机 barback 坐标 */
     cnt = 0
     for {
         if cnt >= barbackNum { break }
@@ -100,7 +102,7 @@ func (opt *fOpts) generator() bool {
         }
     }
 
-    // 随机 barrier 坐标
+    /* 随机 barrier 坐标 */
     cnt = 0
     for {
         if cnt >= barrierNum { break }
@@ -113,7 +115,7 @@ func (opt *fOpts) generator() bool {
         }
     }
 
-    // 随机分配 base
+    /* 随机分配 base */
     cnt = 0
     for {
         if cnt >= opt.playerNum { break }
@@ -127,7 +129,7 @@ func (opt *fOpts) generator() bool {
         }
     }
 
-    // 随机 User 到 base
+    /* 随机 User 到 base */
     cnt = 0
     for k, v := range opt.userInfo {
         t := mp.base[cnt]
@@ -205,17 +207,16 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
         // portal 防御提升
         if isPortal(destCell) { t2 = int(float32(t2) * default_portal_factor) }
 
-        // 成功占领
+        /* 成功占领 */
         if t1 >= t2 {
             t1 -= t2
             if t1 == 0 { t1 = 1 }
-
+            // 更新target cell的兵力和id
             dest.m1 = t1
             dest.m2 = setCellId(destCell, user.id)
-
             // 更新自己score
             user.score++;
-            // 如果是_system_不需要判断之后
+            // 如果是_system_直接改变阵营即可
             if !isSystem(destCell) {
                 // 更新敌人score
                 opt.userInfo[destUid].score--
@@ -230,7 +231,7 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
             }
         } else {
             // 消耗
-            dest.m1 -= int(float32(t1) / default_portal_factor)
+            dest.m1 -= t1
         }
     }
 
@@ -351,16 +352,6 @@ func getOpts(roomToken string) (*fOpts, bool) {
 
 func isPlaying(opt *fOpts) bool { return opt.playing }
 
-// 两种可能 1.游戏人数不够未开始 2.房间不存在
-// (int=>x, int=>y, int=>row, int=>col, bool)
-func IsStart(userToken, roomToken string) (int, int, int, int, bool) {
-    user, ok := getUser(userToken)
-    if !ok { return -1, -1, -1, -1, false }
-    room, ok := getOpts(roomToken)
-    if !ok { return -1, -1, -1, -1, false }
-    if room.playing { return user.baseLoc.X, user.baseLoc.Y, room.row, room.col, true }
-    return -1, -1, -1, -1, false
-}
 
 func (mm *fMap)removeBase(target Point) {
     for ix, v := range(mm.base) {

@@ -63,6 +63,7 @@ func (ws *WSChannel)WSRegister(token string) chan *WSAction {
 }
 
 func (ws *WSChannel)WSCancel(token string) {
+    defer wsRecovery()
     ch, ok := ws.Ch.Load(token)
     if !ok { return }
     ws.Ch.Delete(token)

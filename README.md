@@ -63,19 +63,19 @@ python3 gamePlayer1.py
 
 ### 如何编写自己的Bot
 
-参考 go/src/CodeWar/Utils.py 简单将API封装了一个 class , 简单的主体框架可参考 go/src/gamePlayer1.py
+参考 `go/src/example/CodeWar/Utils.py` 简单将API封装了一个 class , 简单的主体框架可参考 `go/src/example/template.py` , 也可以参考本人写的一个傻瓜bot `go/src/example/cleaner.py`
 
-更多游戏环境参数的设置在 go/src/fight/config.go 中
+更多游戏环境参数的设置在 `go/src/fight/config.go` 中
 
 ### Map
 
-地图分两层 `m1,m2`  每个格子就叫Cell吧
+地图分两层 `m1`, `m2`  每个格子就叫Cell吧. (坐标均从左上角开始 包括返回值)
 
-m1存放Cell数值
+`m1`存放Cell数值
 
-m2 存放Cell类型 (低8位有效)
+`m2` 存放Cell类型 (低8位有效)
 
-对于m2:
+对于`m2`:
 
 ```go
 /* 

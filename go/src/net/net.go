@@ -170,7 +170,7 @@ func gameLoopBegin(rtk string) {
     // 启动游戏 开一个协程等待游戏结束
     go func(rtk string, teq *eventQ.EventQueue, wsc *fight.WSChannel) {
         ch := fight.Run(rtk, teq, wsc)
-        // 当游戏结束时 回收该房间eventQueue
+        // 当游戏结束时 回收该房间eventQueue WSChannel
         <- ch
         netLogger.Println("Game End....")
         eventQMap.Delete(rtk)
