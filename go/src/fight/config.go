@@ -39,8 +39,8 @@ const (
 /* 游戏设置 */
 const (
     ScoreBoardKeepTime = time.Second * 10 // 得分榜在游戏结束后对保持时间
-    Default_login_timeout = time.Minute * 5   // 登录有效时限 (hour)
-    Default_room_timeout  = 3   // 房间等待时限 (s)
+    Default_login_timeout = time.Minute * 1 // 登录有效时限 (minute)
+    Default_room_timeout  = 3 // 房间等待时限 (s)
 )
 
 /* 游戏设置 */
