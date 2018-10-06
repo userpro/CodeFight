@@ -58,12 +58,12 @@ git clone https://github.com/userpro/CodeFight.git
 cd CodeFight/go/src
 go run main.go
 python3 gamePlayer1.py
-# 如果需要启动多个 player 测试, 修改 gamePlayer1.py:6 的 playernum 数量和 gamePlayer2.py:9 的roomtoken(需要先启动 gamePlayer1.py 获得)
+# 如果需要启动多个 player 测试, 修改 cleaner.py:6 的 playernum 数量和 cleaner2.py:14 的roomtoken(需要先启动 cleaner.py 获得)
 ```
 
 ### 如何编写自己的Bot
 
-参考 `go/src/example/CodeWar/Utils.py` 简单将API封装了一个 class , 简单的主体框架可参考 `go/src/example/template.py` , 也可以参考本人写的一个傻瓜bot `go/src/example/cleaner.py`
+参考 `go/src/example/CodeWar/Utils.py` 简单将API封装了一个 class , 简单的主体框架可参考 `go/src/example/template.py` , 也可以参考本人写的一个智障障bot `go/src/example/cleaner.py (cleaner2.py是为了演示对战)`
 
 更多游戏环境参数的设置在 `go/src/fight/config.go` 中
 

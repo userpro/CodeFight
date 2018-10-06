@@ -54,7 +54,7 @@ class MapUnit(object):
 
 class CodeWar(object):
     """玩家操作类"""
-    def __init__(self, url, port, username, password, email, chrome=''):
+    def __init__(self, url, port, username, password, email, chrome='', roomtoken='', playernum=1, row=30, col=30, barback=10, portal=20, barrier=30):
         super(CodeWar, self).__init__()
         self.MapUnit = MapUnit()
         self.chrome = chrome # chrome path
@@ -63,12 +63,17 @@ class CodeWar(object):
         self.username = username
         self.password = password
         self.email = email
-        self.playernum = 0
 
         self.id = 0
-        self.usertoken = self.roomtoken = ''
+        self.usertoken = ''
+        self.roomtoken = roomtoken
         self.x = self.y = -1
-        self.row = self.col = 0
+        self.playernum = playernum
+        self.row = row
+        self.col = col
+        self.barback = barback
+        self.portal  = portal
+        self.barrier = barrier
 
         self.log = "" # 保留错误信息
 
@@ -127,20 +132,23 @@ class CodeWar(object):
     # --* 加入或者创建房间 *--
     # 返回值: status
     # status 1 => join 成功  0 => 失败
-    def join(self, roomtoken='', playernum=1, row=30, col=30, barback=10, portal=10, barrier=20):
-        data = {
-            'usertoken': self.usertoken,
-            'playernum': playernum,
-            'row': row,
-            'col': col,
-            'barrier': barback,
-            'portal':  portal,
-            'barrier': barrier
-        }
-        if roomtoken != '': 
-            self.roomtoken = roomtoken
-            data = {}
-            data['roomtoken'] = roomtoken
+    def join(self):
+        data = { }
+        if self.roomtoken == '': 
+            data = {
+                'usertoken': self.usertoken,
+                'playernum': self.playernum,
+                'row': self.row,
+                'col': self.col,
+                'barrier': self.barback,
+                'portal':  self.portal,
+                'barrier': self.barrier
+            }
+        else:
+            data = {
+                'usertoken': self.usertoken,
+                'roomtoken': self.roomtoken
+            }
 
         payload = urllib.parse.urlencode(data)
 
@@ -277,20 +285,13 @@ class CodeWar(object):
 
 
     # run
-    def run(self, roomtoken='', playernum=1, row=30, col=30):
+    def run(self):
         # 登录
         if not self.login():
             self.log()
             return False
         
-        # 已经在一个房间中
-        if not self.isInRoom():
-            # 加入roomtoken 的房间
-            if roomtoken != '':
-                self.join(roomtoken=roomtoken)
-            # 创建房间
-            else:
-                self.join(playernum=playernum, row=row, col=col)
+        self.join()
 
         cnt = 0
         # 检测游戏是否开始

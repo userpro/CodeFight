@@ -1,7 +1,6 @@
 package net
 
 import (
-    "fmt"
     "log"
     "os"
     "sync"
@@ -183,7 +182,6 @@ func gameLoopBegin(rtk string) {
 // Return Type: JSON
 // curl -d "usertoken=...&playernum=..." http://127.0.0.1:8080/room
 func join(c echo.Context) error {
-    fmt.Println("join")
     /* -- 权限检查 -- */
     /* 检查usertoken */
     utk := c.FormValue("usertoken")
@@ -212,9 +210,7 @@ func join(c echo.Context) error {
         /* 获取参数 */
         
         /* 创建房间 */
-        fmt.Println("NewRoom")
         joindata, joinstatus, newroomok := fight.NewRoom(utk, playernum, row, col, barback, portal, barrier)
-        fmt.Println("OK")
         // Join Failed
         if !newroomok {
             return c.JSON(http.StatusOK, &RespInfo{ Message:joindata.(string), Status:0 })

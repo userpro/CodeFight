@@ -73,7 +73,7 @@ const (
 
     default_portal_army = 20  // 初始 portal 军队数量
     default_barback_army= 20  // 初始 barback 军队数量
-    default_base_army   = 20  // 初始 base 军队数量
+    default_base_army   = 50  // 初始 base 军队数量
 
     default_global_add  = 20  // 全局增加 轮数间隔
     default_special_add = 5   // 全局特殊建筑增加(base, portal)

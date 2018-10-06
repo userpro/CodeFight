@@ -2,11 +2,18 @@ import time
 import random
 from CodeWar.Utils import CodeWar
 
-playernum = 1 # 玩家人数(创建房间需要)
-row = 30 # (创建房间需要 最大不超过100)
-col = 30 # (创建房间需要 最大不超过100)
-roomtoken = '1c1ad9e26182f690938f670332e5ccd0' # 加入房间需要
+# 创建房间需要设置
+playernum = 1 # 玩家人数
+row = 20 # 最大不超过100
+col = 20 # 最大不超过100
+barback = 10 # 兵营
+portal  = 20 # 据点
+barrier = 30 # 障碍物
 
+# 加入房间需要设置
+roomtoken = '' 
+
+# 账号及服务器设置
 chrome = '' # 对于Windows用户可能需要填写Chrome安装路径.../chrome.exe
 username = 'test'
 password = 'test'
@@ -16,9 +23,18 @@ port = '52333'
 
 
 if __name__ == '__main__':
-    a = CodeWar(url, port, username, password, email, chrome)
+    # 此处不需要修改
+    my = CodeWar(url=url, port=port, 
+        username=username, password=password, email=email, 
+        chrome=chrome,
+        roomtoken=roomtoken, 
+        playernum=playernum, 
+        row=row, col=col, 
+        barback=barback, portal=portal, barrier=barrier)
+    
     # a.register() # 注册
-    a.run(roomtoken=roomtoken, playernum=1, row=30, col=30)
+    while not my.run():
+        time.sleep(3)
 
     # 获取初始位置(基地)
     a.isStart()

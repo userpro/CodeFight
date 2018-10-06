@@ -11,13 +11,13 @@ portal  = 20 # 据点
 barrier = 30 # 障碍物
 
 # 加入房间需要设置
-roomtoken = '' 
+roomtoken = '7f68ba376ef7d083546ac3a224b43f74' 
 
 # 账号及服务器设置
 chrome = '' # 对于Windows用户可能需要填写Chrome安装路径.../chrome.exe
-username = 'hipro'
-password = 'okiamhi'
-email = 'test@test'
+username = 'test'
+password = 'test'
+email = 'test'
 url = '127.0.0.1'
 port = '52333'
 
@@ -35,7 +35,6 @@ if __name__ == '__main__':
     while not my.run():
         time.sleep(3)
 
-    print('\n\nYour RoomToken: ', my.roomtoken, '\n\n')
     # 游戏主循环 move操作延时不要低于100ms 操作会累积
     # 获取初始位置(基地)
     my.isStart()

@@ -1,11 +1,11 @@
 package fight
 
 import (
+    "time"
+    "strconv"
     "encoding/hex"
     "math/rand"
     "crypto/md5"
-    "time"
-    "strconv"
 )
 
 func (qry *fQueryCounter) dec() bool {
@@ -191,11 +191,12 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
     /* 领地内调动 */
     if srcUid == destUid {
         dest.m1 += t1
-    } else {
-        /* 敌对领域 attack */
+    } else { /* 敌对领域 attack */
+        // portal 防御提升 攻击方威力衰减
+        if isPortal(destCell) { t1 = int(float32(t1) / default_portal_factor) }
+
+        // 敌对Cell的兵力
         t2 := dest.m1
-        // portal 防御提升
-        if isPortal(destCell) { t2 = int(float32(t2) * default_portal_factor) }
 
         /* 成功占领 */
         if t1 >= t2 {
@@ -212,15 +213,14 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
                 opt.userInfo[destUid].score--
 
                 if isBase(destCell) { // base
-                    someOneGameOver(user, opt)
+                    someOneGameOver(opt, srcUid, destUid)
                     mm.removeBase(Point{ dest.x, dest.y })
                 } else if isPortal(destCell) { // portal
                     dest.m2 = setCellType(destCell, _space_)
                     mm.removePortal(Point{ dest.x, dest.y})
                 }
             }
-        } else {
-            // 消耗
+        } else { /* 消耗 */
             dest.m1 -= t1
         }
     }
@@ -370,14 +370,14 @@ func (mm *fMap)removeBarback(target Point) {
     }
 }
 
-func someOneGameOver(user *fUser, opt *fOpts) {
+func someOneGameOver(opt *fOpts, winner, loser byte) {
     mm := opt.m
-    user.status = US_lose_
+    opt.userInfo[loser].status = US_lose_
     for i:=0; i<opt.row; i++ {
         for j:=0; j<opt.col; j++ {
-            if getUserId(mm.m2[i][j]) == user.id {
+            if getUserId(mm.m2[i][j]) == loser {
                 mm.m1[i][j] = 0
-                mm.m2[i][j] = setCellId(mm.m2[i][j], _system_);
+                mm.m2[i][j] = setCellId(mm.m2[i][j], winner);
             }
         }
     }
