@@ -33,6 +33,9 @@ type (
         accId     byte // 当前最小未分配ID (严格递增)
         playerNum int
         row, col  int
+        barbackNum int
+        portalNum  int
+        barrierNum int
         playing   bool
         roomToken string
         userInfo  map[byte]*fUser // [id]*fUser
@@ -44,8 +47,8 @@ type (
     fMap struct {
         mu        sync.RWMutex
         roomToken string
-        m1    [Default_row][Default_col]int
-        m2    [Default_row][Default_col]byte
+        m1    [default_row][default_col]int
+        m2    [default_row][default_col]byte
 
         base, barback, portal, barrier []Point
     }

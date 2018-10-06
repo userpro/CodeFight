@@ -20,29 +20,24 @@ var (
     fightLogger    *log.Logger
 )
 
-func NewRoom(userToken string, params ...int) (interface{}, int, bool) {
+func NewRoom(userToken string, tPlayerNum, trow, tcol, tbarback, tportal, tbarrier int) (interface{}, int, bool) {
     _, ok := getUser(userToken)
     if !ok { return "You haven't login.", Game_failed_response_, false }
 
     // 可定制参数: 游戏人数 战场size
-    var tPlayerNum, trow, tcol int
-    if len(params) == 1 {
-        tPlayerNum = params[0]
-        trow = Default_row
-        tcol = Default_col
-    } else if len(params) == 3 {
-        tPlayerNum = params[0]
-        trow = params[1]
-        tcol = params[2]
-    } else {
-        tPlayerNum = Default_player_num
-        trow = Default_row
-        tcol = Default_col
+    if tPlayerNum == 0 { tPlayerNum = default_player_num }
+    if trow == 0 { trow = default_row }
+    if tcol == 0 { tcol = default_col }
+    if tbarback == 0 { tbarback = default_barback }
+    if tportal  == 0 { tportal  = default_portal  }
+    if tbarrier == 0 { tbarrier = default_barrier }
+
+    // 合法性校验
+    if tPlayerNum > default_max_player_num || tPlayerNum <= 0 || trow > default_max_row || tcol > default_max_col || trow < default_min_row || tcol < default_min_col {
+        return "Out of limit! Check room config!", Game_failed_response_, false
     }
 
-    if tPlayerNum > Default_player_num || trow > Default_row || tcol > Default_col {
-        return "Out of limit!", Game_failed_response_, false
-    }
+    if tPlayerNum + tbarback + tportal + tbarrier > trow * tcol { return "Building too many!", Game_failed_response_, false }
 
     roomToken := GenToken(userToken)
     opt := &fOpts {
@@ -50,6 +45,9 @@ func NewRoom(userToken string, params ...int) (interface{}, int, bool) {
         playerNum: tPlayerNum,
         row: trow,
         col: tcol,
+        barbackNum: tbarback,
+        portalNum:  tportal,
+        barrierNum: tbarrier,
         playing: false,
         userInfo:  make(map[byte]*fUser),
         roomToken: roomToken,

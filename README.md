@@ -168,8 +168,8 @@ e.GET("/room/scoreboard", getScoreBoard)
 | URL        | /room                                                        |
 | 参数       | 加入房间:<br />roomtoken=XXX<br />创建房间:<br />playernum=X&row=X&col=X |
 | 示例       | 加入房间:<br />/room?roomtoken=XXXX<br />创建房间:<br />/room?playernum=X&row=X&col=X |
-| 返回值     | {<br />    "id": X,<br />    "usertoken": "XXX",<br />    "roomtoken": "XXX",<br />    "playernum": "XXX",<br />    "row": XX,<br />    "col":XX,<br />    "message": "XXX",<br />    "status": X<br />} |
-| 返回值说明 | 返回所加入房间的信息, <br />id为本局游戏你的id               |
+| 返回值     | {<br />    "id": X,<br />    "usertoken": "XXX",<br />    "roomtoken": "XXX",<br />    "playernum": "XXX",<br />    "row": XX,<br />    "col":XX,<br />    "barback": XX,<br />    "portal": XX,<br />    "barrier":XX,  <br />    "message": "XXX",<br />    "status": X<br />} |
+| 返回值说明 | 返回所加入房间的信息, <br />id为本局游戏你的id, <br />barback 兵营数量, portal 据点数量, barrier 障碍物数量 |
 
 ###### leave
 

@@ -64,20 +64,10 @@ func (opt *fOpts) generator() bool {
     mp.mu.Lock()
     defer mp.mu.Unlock()
 
-    /* 随机数不应该小于最大值的1/2 */
-    portalNum := rand.Intn(default_max_portal) + 1
-    if portalNum < default_max_portal / 2 { portalNum *= 2 }
-
-    barbackNum := rand.Intn(default_max_barback) + 1
-    if barbackNum < default_max_barback / 2 { barbackNum *= 2 }
-
-    barrierNum := rand.Intn(default_max_barrier) + 1
-    if barrierNum < default_max_barrier / 2 { barrierNum *= 2 }
-
     /* 随机 portal 坐标 */
     cnt := 0
     for {
-        if cnt >= portalNum { break }
+        if cnt >= opt.portalNum { break }
         x := rand.Intn(opt.row)
         y := rand.Intn(opt.col)
         if (mp.m2[x][y] == _space_) {
@@ -91,7 +81,7 @@ func (opt *fOpts) generator() bool {
     /* 随机 barback 坐标 */
     cnt = 0
     for {
-        if cnt >= barbackNum { break }
+        if cnt >= opt.barbackNum { break }
         x := rand.Intn(opt.row)
         y := rand.Intn(opt.col)
         if (mp.m2[x][y] == _space_) {
@@ -105,7 +95,7 @@ func (opt *fOpts) generator() bool {
     /* 随机 barrier 坐标 */
     cnt = 0
     for {
-        if cnt >= barrierNum { break }
+        if cnt >= opt.barrierNum { break }
         x := rand.Intn(opt.row)
         y := rand.Intn(opt.col)
         if (mp.m2[x][y] == _space_) {

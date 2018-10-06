@@ -3,8 +3,8 @@ import random
 from CodeWar.Utils import CodeWar
 
 playernum = 1 # 玩家人数(创建房间需要)
-row = 30 # (创建房间需要 最大不超过100)
-col = 30 # (创建房间需要 最大不超过100)
+row = 10 # (创建房间需要 最大不超过100)
+col = 10 # (创建房间需要 最大不超过100)
 roomtoken = '' # 加入房间需要
 
 chrome = '' # 对于Windows用户可能需要填写Chrome安装路径.../chrome.exe

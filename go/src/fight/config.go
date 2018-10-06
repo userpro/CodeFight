@@ -41,9 +41,6 @@ const (
     ScoreBoardKeepTime = time.Second * 10 // 得分榜在游戏结束后对保持时间
     Default_login_timeout = time.Minute * 5   // 登录有效时限 (hour)
     Default_room_timeout  = 3   // 房间等待时限 (s)
-    Default_player_num  = 16    // 房间玩家数量
-    Default_col = 100
-    Default_row = 100
 )
 
 /* 游戏设置 */
@@ -51,15 +48,35 @@ const (
     default_action_interval = time.Millisecond * 200 // 每轮action的间隔
     default_play_timeout  = time.Second * 600  // 游戏总时限 (s)
 
-    default_max_portal  = 10  // 地图 portal 数量
-    default_max_barback = 5   // 地图 barback 数量
-    default_max_barrier = 50  // 地图 barrier 数量
-    
+    /* 房间玩家数量 */
+    default_player_num    = 2  // 默认双人对战
+    default_max_player_num= 16
+    /* 地图尺寸 */
+    default_col = 30
+    default_row = 30
+    default_max_col = 100
+    default_max_row = 100
+    default_min_col = 10
+    default_min_row = 10
+    /* 地图 portal 数量 */
+    default_portal      = 10 
+    default_min_portal  = 5  
+    default_max_portal  = 100
+    /* 地图 barback 数量 */
+    default_barback     = 20 
+    default_max_barback = 100
+    default_min_barback = 5  
+    /* 地图 barrier 数量 */
+    default_barrier     = 30 
+    default_max_barrier = 100
+    default_min_barrier = 5  
+
     default_portal_army = 20  // 初始 portal 军队数量
     default_barback_army= 20  // 初始 barback 军队数量
     default_base_army   = 20  // 初始 base 军队数量
-    default_global_add  = 6   // 全局增加 轮数间隔
-    default_special_add = 2   // 全局特殊建筑增加(base, portal)
+
+    default_global_add  = 20  // 全局增加 轮数间隔
+    default_special_add = 5   // 全局特殊建筑增加(base, portal)
     default_portal_factor float32 = 1.5 // portal 防御提升因子
 
     default_max_query   = 8   // 每轮每个 player 最多的查询的次数

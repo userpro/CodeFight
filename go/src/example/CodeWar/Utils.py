@@ -127,19 +127,20 @@ class CodeWar(object):
     # --* 加入或者创建房间 *--
     # 返回值: status
     # status 1 => join 成功  0 => 失败
-    def join(self, roomtoken='', playernum=1, row=30, col=30):
+    def join(self, roomtoken='', playernum=1, row=30, col=30, barback=10, portal=10, barrier=20):
         data = {
             'usertoken': self.usertoken,
             'playernum': playernum,
             'row': row,
-            'col': col
+            'col': col,
+            'barrier': barback,
+            'portal':  portal,
+            'barrier': barrier
         }
         if roomtoken != '': 
             self.roomtoken = roomtoken
+            data = {}
             data['roomtoken'] = roomtoken
-            del data['row']
-            del data['col']
-            del data['playernum']
 
         payload = urllib.parse.urlencode(data)
 
@@ -290,7 +291,7 @@ class CodeWar(object):
             # 创建房间
             else:
                 self.join(playernum=playernum, row=row, col=col)
-        
+
         cnt = 0
         # 检测游戏是否开始
         while not self.isStart():

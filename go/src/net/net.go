@@ -1,6 +1,7 @@
 package net
 
 import (
+    "fmt"
     "log"
     "os"
     "sync"
@@ -182,6 +183,7 @@ func gameLoopBegin(rtk string) {
 // Return Type: JSON
 // curl -d "usertoken=...&playernum=..." http://127.0.0.1:8080/room
 func join(c echo.Context) error {
+    fmt.Println("join")
     /* -- 权限检查 -- */
     /* 检查usertoken */
     utk := c.FormValue("usertoken")
@@ -194,53 +196,58 @@ func join(c echo.Context) error {
     /* 检查roomtoken */
     rtk := c.FormValue("roomtoken")
     if rtk == "" { /* 没有rtk 则新建room */
-        /* 校验参数 */
+        /* 获取参数 */
         playernum, err := strconv.Atoi(c.FormValue("playernum"))
-        if err != nil { playernum = fight.Default_player_num }
-        if playernum > fight.Default_player_num { playernum = fight.Default_player_num }
+        if err != nil { playernum = 0 }
         row, err := strconv.Atoi(c.FormValue("row"))
-        if err != nil { row = fight.Default_row }
-        if row > fight.Default_row { row = fight.Default_row }
+        if err != nil { row = 0 }
         col, err := strconv.Atoi(c.FormValue("col"))
-        if err != nil { col = fight.Default_col }
-        if col > fight.Default_col { col = fight.Default_col }
-        /* 校验参数 */
+        if err != nil { col = 0 }
+        barback, err := strconv.Atoi(c.FormValue("barback"))
+        if err != nil { barback = 0 }
+        portal, err  := strconv.Atoi(c.FormValue("portal"))
+        if err != nil { portal = 0 }
+        barrier, err := strconv.Atoi(c.FormValue("barrier"))
+        if err != nil { barrier = 0 }
+        /* 获取参数 */
         
         /* 创建房间 */
-        joindata, joinstatus, newroomok := fight.NewRoom(utk, playernum, row, col)
-        if newroomok {
-            data := joindata.(*fight.JoinRet)
-            rtk := data.RoomToken
-            // 更新netToken
-            nntk.Id = data.Id
-            nntk.RoomToken = rtk
-
-            /* 如果NewRoom 返回 RM_playing_ 标志
-                表示 join 后立即开始 */
-            if joinstatus == fight.RM_playing_ {
-                netLogger.Println("[Join] Started!")
-                // 启动游戏
-                gameLoopBegin(rtk)
-            }
-            
-            return c.JSON(http.StatusOK, &netJoinRet{
-                Id:        data.Id,
-                Name:      nntk.Name,
-                UserToken: utk,
-                RoomToken: rtk,
-                
-                Row: row,
-                Col: col,
-                Playernum: playernum,
-
-                RespInfo: RespInfo {
-                    Message: "Join Room OK!",
-                    Status: 1,
-                },
-            }) 
-        }
+        fmt.Println("NewRoom")
+        joindata, joinstatus, newroomok := fight.NewRoom(utk, playernum, row, col, barback, portal, barrier)
+        fmt.Println("OK")
         // Join Failed
-        return c.JSON(http.StatusOK, &RespInfo{ Message:joindata.(string), Status:0 })
+        if !newroomok {
+            return c.JSON(http.StatusOK, &RespInfo{ Message:joindata.(string), Status:0 })
+        }
+        data := joindata.(*fight.JoinRet)
+        rtk := data.RoomToken
+        // 更新netToken
+        nntk.Id = data.Id
+        nntk.RoomToken = rtk
+
+        /* 如果NewRoom 返回 RM_playing_ 标志
+            表示 join 后立即开始 */
+        if joinstatus == fight.RM_playing_ {
+            netLogger.Println("[Join] Started!")
+            // 启动游戏
+            gameLoopBegin(rtk)
+        }
+        
+        return c.JSON(http.StatusOK, &netJoinRet{
+            Id:        data.Id,
+            Name:      nntk.Name,
+            UserToken: utk,
+            RoomToken: rtk,
+            
+            Row: row,
+            Col: col,
+            Playernum: playernum,
+
+            RespInfo: RespInfo {
+                Message: "Join Room OK!",
+                Status: 1,
+            },
+        })
     } else {
 
         /* 有rtk 直接加入 */
