@@ -269,6 +269,7 @@ class CodeWar(object):
             usertoken = self.usertoken
         _logout = requests.delete(self.url + "/user?usertoken="+usertoken, timeout=5)
         self.usertoken = ''
+        self.roomtoken = ''
 
         print('[logout]')
 
