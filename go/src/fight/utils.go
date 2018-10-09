@@ -133,12 +133,13 @@ func (opt *fOpts) generator() bool {
     return true
 }
 
+/* 提醒: debug log 已关闭 */
 func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint, *fPoint, bool) {
     mm := opt.m
 
     /* 判断移动是否合法 */
     if !checkLoc(opt, src) { 
-        fightLogger.Println("[Move] Invalid current Point!")
+        // fightLogger.Println("[Move] Invalid current Point!")
         return nil,nil,false 
     }
 
@@ -148,22 +149,22 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
     srcUid  := getUserId(src.m2)
 
     if srcUid != user.id { 
-        fightLogger.Println("[Move] Not belong to you! src: ", srcUid, " your id: ", user.id)
+        // fightLogger.Println("[Move] Not belong to you! src: ", srcUid, " your id: ", user.id)
         return nil,nil,false 
     }
     if isBarrier(src.m2) { 
-        fightLogger.Println("[Move] Can't move from, it's a barrier!")
+        // fightLogger.Println("[Move] Can't move from, it's a barrier!")
         return nil,nil,false 
     }
     if src.m1 <= 1 { 
-        fightLogger.Println("[Move] Don't have enough army!")
+        // fightLogger.Println("[Move] Don't have enough army!")
         return nil,nil,false 
     }
 
     /* 调入判断 */
     dest := getNextPoint(src, direction)
     if !checkLoc(opt, dest) { 
-        fightLogger.Println("[Move] Invalid next Point!")
+        // fightLogger.Println("[Move] Invalid next Point!")
         return nil,nil,false 
     }
     dest.m1 = mm.m1[dest.x][dest.y]
@@ -172,7 +173,7 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
     destCell := dest.m2
     destUid  := getUserId(destCell)
     if isBarrier(destCell) { 
-        fightLogger.Println("[Move] Can't move to!")
+        // fightLogger.Println("[Move] Can't move to!")
         return nil,nil,false 
     }
 
@@ -376,7 +377,6 @@ func someOneGameOver(opt *fOpts, winner, loser byte) {
     for i:=0; i<opt.row; i++ {
         for j:=0; j<opt.col; j++ {
             if getUserId(mm.m2[i][j]) == loser {
-                mm.m1[i][j] = 0
                 mm.m2[i][j] = setCellId(mm.m2[i][j], winner);
             }
         }
