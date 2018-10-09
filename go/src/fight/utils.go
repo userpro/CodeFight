@@ -374,6 +374,7 @@ func (mm *fMap)removeBarback(target Point) {
 func someOneGameOver(opt *fOpts, winner, loser byte) {
     mm := opt.m
     opt.userInfo[loser].status = US_lose_
+    opt.userInfo[loser].score  = 0  // 分数清零
     for i:=0; i<opt.row; i++ {
         for j:=0; j<opt.col; j++ {
             if getUserId(mm.m2[i][j]) == loser {
