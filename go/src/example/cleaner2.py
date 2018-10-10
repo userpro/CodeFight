@@ -13,7 +13,7 @@ portal  = 20 # 据点
 barrier = 30 # 障碍物
 
 # 加入房间需要设置 (B)
-roomtoken = '5fe5ed1d18292e55060744b7a2c56c57' 
+roomtoken = '816e95209d7b31e8e87e7f7ee707a53a' 
 
 # 账号及服务器设置 (C)
 chrome = '' # 对于Windows用户可能需要填写Chrome安装路径.../chrome.exe
@@ -76,9 +76,9 @@ if __name__ == '__main__':
         action_length, move_status = my.move(x,y,1,direction)
         # 操作序列过长 
         if action_length > 3:
-            time.sleep(3)
+            time.sleep(1)
 
-        time.sleep(0.5)
+        time.sleep(0.3)
         # Params: (x, y)
         # 不传参数默认 x = base.x  y = base.y
         # Return: (query_res, query_status)
@@ -119,8 +119,12 @@ if __name__ == '__main__':
             x = tmpx + x - 2
             y = tmpy + y - 2
 
+        # 当出现对战 丢失Cell(x, y)控制权的时候 随机找周围的视野
+        else:
+            x = x + random.randint(-1,1)
+            y = y + random.randint(-1,1)
 
-        time.sleep(1)
+        time.sleep(0.3)
         ## 以上为策略猪蹄部分 ###
     
     my.logout()

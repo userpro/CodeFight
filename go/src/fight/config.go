@@ -45,7 +45,7 @@ const (
 
 /* 游戏设置 */
 const (
-    default_action_interval = time.Millisecond * 200 // 每轮action的间隔
+    default_action_interval = time.Millisecond * 300 // 每轮action的间隔
     default_play_timeout  = time.Second * 600  // 游戏总时限 (s)
 
     /* 房间玩家数量 */
@@ -72,14 +72,14 @@ const (
     default_min_barrier = 5  
 
     default_portal_army = 20  // 初始 portal 军队数量
-    default_barback_army= 20  // 初始 barback 军队数量
+    default_barback_army= 10  // 初始 barback 军队数量
     default_base_army   = 50  // 初始 base 军队数量
 
     default_global_add  = 20  // 全局增加 轮数间隔
     default_special_add = 5   // 全局特殊建筑增加(base, portal)
     default_portal_factor float32 = 1.5 // portal 防御提升因子
 
-    default_max_query   = 8   // 每轮每个 player 最多的查询的次数
+    default_max_query   = 4   // 每轮每个 player 最多的查询的次数
 
     /* 视野范围 (从中心坐标往外多少个距离1的矩形) 
     例如 2 => (2+1+2)*(2+1+2) */

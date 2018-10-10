@@ -205,7 +205,7 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
             if t1 == 0 { t1 = 1 }
             // 更新target cell的兵力和id
             dest.m1 = t1
-            dest.m2 = setCellId(destCell, user.id)
+            dest.m2 = setCellId(destCell, srcUid)
             // 更新自己score
             user.score++;
             // 如果是_system_直接改变阵营即可
@@ -216,7 +216,8 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
                 if isBase(destCell) { // base
                     someOneGameOver(opt, srcUid, destUid)
                     mm.removeBase(Point{ dest.x, dest.y })
-                } else if isPortal(destCell) { // portal
+                } else if isPortal(destCell) { 
+                    // portal 敌方portal占领会被摧毁
                     dest.m2 = setCellType(destCell, _space_)
                     mm.removePortal(Point{ dest.x, dest.y})
                 }

@@ -25,7 +25,7 @@ port = '52333'
 
 
 if __name__ == '__main__':
-    # 此处不需要修改
+    # 以下不需要修改
     my = CodeWar(url=url, port=port, 
         username=username, password=password, email=email, 
         chrome=chrome,
@@ -33,6 +33,7 @@ if __name__ == '__main__':
         playernum=playernum, 
         row=row, col=col, 
         barback=barback, portal=portal, barrier=barrier)
+    # 以上不需要修改
     
     # a.register() # 注册
     while not my.run():
