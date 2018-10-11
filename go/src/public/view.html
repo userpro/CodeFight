@@ -9,16 +9,107 @@
       margin: 0;
       padding: 0;
     }
-    html, body {
+    html, body, .page{
       height: 100%;
       width: 100%;
+      overflow: hidden;
+    }
+    .page{
+      position: relative;
+      display: flex;
+      max-width: 1920px;
+      min-width: 1280px;
+      margin:0 auto;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      justify-content: center;
+    }
+    .page .left{
+      height: 100%;
+      width: 10%;
+      margin: 100px 20px 0 10px;
+      text-align: left;
+      max-width: 192px;
+      min-width: 128px;
+      overflow:auto;
+    }
+    .page .center{
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-content: center;
+      height: 100%;
+      width: 80%;
+      max-width: 1536px;
+      min-width: 1024px;
+    }
+    .page .center .title{
+      width: 100%;
+      height: 100px;
+      line-height: 100px;
+      font-size: 30px;
+      text-align: center;
+    }
+    .page .center .content{
+      width: 100%;
+      height: auto;
+      text-align: center;
+      overflow:scroll;
+
+    }
+    .page .center .content::-webkit-scrollbar {
+        display: none;
+    }
+    .page .center .content #viewMap{
+      margin: 0 auto;
+    }
+    .page .right{
+      height: 100%;
+      width: 10%;
+      max-width: 192px;
+      min-width: 128px;
+      margin: 100px 10px 0 20px;
+      text-align: left;
     }
   </style>
 </head>
 
 <body>
-  <canvas id="viewMap"></canvas>
-
+  <div class="page">
+    <div class="left">
+      <h1>积分排行</h1>
+      <table>
+        <tr><td>#1</td><td>哟西</td></tr>
+        <tr><td>#2</td><td>古道西风瘦马</td></tr>
+        <tr><td>#3</td><td>断肠人在天涯</td></tr>
+        <tr><td>#4</td><td>举头望明月</td></tr>
+        <tr><td>#5</td><td>低头思故乡</td></tr>
+        <tr><td>#6</td><td>一一一</td></tr>
+        <tr><td>#7</td><td>买了佛了那个</td></tr>
+        <tr><td>#8</td><td>oK</td></tr>
+      </table>
+      <br>
+      <h1>广告赞助</h1>
+      <p>先占个位置</p>
+    </div>
+    <div class="center">
+      <div class="title">Code Fight ! ! !</div>
+      <div class="content"><canvas id="viewMap"></canvas></div>
+    </div>
+    <div class="right">
+      <h1>游戏介绍</h1>
+      <p>简单的代码对战游戏, 受到 generals.io 以及知乎上 Color Fight 启发 . Go fight!</p>
+      <p>游戏中兵力即 Cell 中的数值, 两个不同阵营的兵力交战时, 结果为相减 .</p>
+      <p>游戏中有 兵营(barback)、据点(portal)、障碍物(barrier)、基地(base) 四种建筑物</p>
+      <p>兵营: 间隔较小轮数增加在其中的兵力</p>
+      <p>据点: 提升据点内兵力的实力 (即在其中的兵力相当于乘以一个因子, 出了据点即失效)</p>
+      <p>障碍物: 无法通过与摧毁之地</p>
+      <p>基地: 每个玩家仅一个, 被摧毁即失败. (被占领方所拥有的Cell会归占领方所有)</p>
+      <br>
+      <h1>地图缩放</h1>
+      <input type="range" name="range" min="0" max="10" step="0.1" value="0" />
+    </div>
+  </div>
   <script>
     /* 地形 Cell Type */
     var  _space_   = 0x00; // 000- ----

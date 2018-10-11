@@ -213,7 +213,9 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
                 // 更新敌人score
                 opt.userInfo[destUid].score--
 
-                if isBase(destCell) { // base
+                if isBase(destCell) { 
+                    // base 被占领时会被摧毁
+                    dest.m2 = setCellType(destCell, _space_)
                     someOneGameOver(opt, srcUid, destUid)
                     mm.removeBase(Point{ dest.x, dest.y })
                 } else if isPortal(destCell) { 

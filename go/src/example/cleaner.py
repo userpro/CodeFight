@@ -5,12 +5,12 @@ from CodeWar.Utils import CodeWar
 # 注意 A B 项 添一项即可, C 项必填
 
 # 创建房间需要设置 (A)
-playernum = 2 # 玩家人数
-row = 20 # 最大不超过100
+playernum = 1 # 玩家人数
+row = 29 # 最大不超过100
 col = 20 # 最大不超过100
 barback = 10 # 兵营
 portal  = 20 # 据点
-barrier = 30 # 障碍物
+barrier = 20 # 障碍物
 
 # 加入房间需要设置 (B)
 roomtoken = '' 
@@ -37,14 +37,14 @@ if __name__ == '__main__':
     while not my.run():
         time.sleep(3)
 
-    print('\n\nYour RoomToken: ', my.roomtoken, '\n\n')
+    # 打印基本信息
+    my.info()
     # 游戏主循环 move操作延时不要低于100ms 操作会累积
     # 获取初始位置(基地)
     my.isStart()
     x, y = my.getBase()
     # 获取地图大小
     row, col = my.getMapSize()
-    print(row, col)
 
     direction = 1
     MapUnit = my.MapUnit
