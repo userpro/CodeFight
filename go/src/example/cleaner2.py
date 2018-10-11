@@ -37,13 +37,14 @@ if __name__ == '__main__':
     while not my.run():
         time.sleep(3)
 
+    # 打印基本信息
+    my.info()
     # 游戏主循环 move操作延时不要低于100ms 操作会累积
     # 获取初始位置(基地)
     my.isStart()
     x, y = my.getBase()
     # 获取地图大小
     row, col = my.getMapSize()
-    print(row, col)
 
     direction = 1
     MapUnit = my.MapUnit

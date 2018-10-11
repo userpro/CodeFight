@@ -20,17 +20,17 @@ var (
     fightLogger    *log.Logger
 )
 
-func NewRoom(userToken string, tPlayerNum, trow, tcol, tbarback, tportal, tbarrier int) (interface{}, int, bool) {
+func NewRoom(userToken string, tPlayerNum int, trow int, tcol int, tbarback int, tportal int, tbarrier int) (interface{}, int, bool) {
     _, ok := getUser(userToken)
     if !ok { return "You haven't login.", Game_failed_response_, false }
 
     // 可定制参数: 游戏人数 战场size
-    if tPlayerNum == 0 { tPlayerNum = default_player_num }
-    if trow == 0 { trow = default_row }
-    if tcol == 0 { tcol = default_col }
-    if tbarback == 0 { tbarback = default_barback }
-    if tportal  == 0 { tportal  = default_portal  }
-    if tbarrier == 0 { tbarrier = default_barrier }
+    if tPlayerNum == -1 { tPlayerNum = default_player_num }
+    if trow == -1 { trow = default_row }
+    if tcol == -1 { tcol = default_col }
+    if tbarback == -1 { tbarback = default_barback }
+    if tportal  == -1 { tportal  = default_portal  }
+    if tbarrier == -1 { tbarrier = default_barrier }
 
     // 合法性校验
     if tPlayerNum > default_max_player_num || tPlayerNum <= 0 || trow > default_max_row || tcol > default_max_col || trow < default_min_row || tcol < default_min_col {
@@ -38,6 +38,10 @@ func NewRoom(userToken string, tPlayerNum, trow, tcol, tbarback, tportal, tbarri
     }
 
     if tPlayerNum + tbarback + tportal + tbarrier > trow * tcol { return "Building too many!", Game_failed_response_, false }
+
+    fightLogger.Println("tbarback: ",tbarback)
+    fightLogger.Println("tportal: ",tportal)
+    fightLogger.Println("tbarrier: ",tbarrier)
 
     roomToken := GenToken(userToken)
     opt := &fOpts {

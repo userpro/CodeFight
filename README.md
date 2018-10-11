@@ -18,7 +18,7 @@
 
 障碍物: 无法通过与摧毁之地
 
-基地: 每个玩家仅一个, 被摧毁即失败
+基地: 每个玩家仅一个, 被摧毁即失败. (被占领方所拥有的Cell会归占领方所有)
 
 ### 如何测试/运行
 
@@ -67,6 +67,16 @@ python3 cleaner.py
 参考 `go/src/example/CodeWar/Utils.py` 简单将API封装了一个 class , 简单的主体框架可参考 `go/src/example/template.py` , 也可以参考本人写的一个智障障bot `go/src/example/cleaner.py (cleaner2.py是为了演示对战)`
 
 更多游戏环境参数的设置在 `go/src/fight/config.go` 中
+
+##### 一些建议
+
+如果基于 `go/src/example/CodeWar/Utils.py` 开发bot, 请多留意源码中的注释, 欢迎对其进行二次开发.
+
+维护一个自己的map, 定期query来更新自己的map. 在对战过程中, 你可能会丢失当前Cell, 这时候需要map来寻找下一个可move的Cell.
+
+Query 策略和 Move 策略可以分开, 以免出现激烈对战的时候, bot因为丢失Cell而策略失效. (由于query只能查询自己拥有的Cell周围的情况)
+
+当出现bot策略失效时, 可以直接重启bot程序, 支持断线重连.
 
 ### Map
 
@@ -193,7 +203,7 @@ e.GET("/room/scoreboard", getScoreBoard)
 | URL        | /room                                                        |
 | 参数       | {<br />    "usertoken": "XXX",<br />    "roomtoken": "XXX",<br />    "loc": {<br />        "x": 1,<br />        "y": 3<br />    }<br />} |
 | 返回值     | {<br />    "eyeshot": {<br />        "m1": \[n\]\[n\],<br />        "m2": \[n\]\[n\]<br />    },<br />    "status": 1<br />} |
-| 返回值说明 | m1 m2 分别指代地图的两个图层, size 一致, <br />标示了以 (x, y) 为中心的一个矩阵的视野,<br />具体矩阵的大小以实际返回为准, 可能会有调整,<br />对于超出地图的部分的值在m1中以 -1 填充 |
+| 返回值说明 | m1 m2 分别指代地图的两个图层, size 一致, <br />标示了以 (x, y) 为中心的一个矩阵的视野,<br />具体矩阵的大小以实际返回为准, 可能会有调整,<br />对于超出地图的部分的值在m1中以 -1 填充<br />(⚠️ (x, y)必须为你拥有的Cell) |
 
 ###### move
 

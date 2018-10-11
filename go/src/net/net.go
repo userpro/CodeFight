@@ -196,17 +196,17 @@ func join(c echo.Context) error {
     if rtk == "" { /* 没有rtk 则新建room */
         /* 获取参数 */
         playernum, err := strconv.Atoi(c.FormValue("playernum"))
-        if err != nil { playernum = 0 }
+        if err != nil { playernum = -1 }
         row, err := strconv.Atoi(c.FormValue("row"))
-        if err != nil { row = 0 }
+        if err != nil { row = -1 }
         col, err := strconv.Atoi(c.FormValue("col"))
-        if err != nil { col = 0 }
+        if err != nil { col = -1 }
         barback, err := strconv.Atoi(c.FormValue("barback"))
-        if err != nil { barback = 0 }
+        if err != nil { barback = -1 }
         portal, err  := strconv.Atoi(c.FormValue("portal"))
-        if err != nil { portal = 0 }
+        if err != nil { portal = -1 }
         barrier, err := strconv.Atoi(c.FormValue("barrier"))
-        if err != nil { barrier = 0 }
+        if err != nil { barrier = -1 }
         /* 获取参数 */
         
         /* 创建房间 */
