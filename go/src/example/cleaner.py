@@ -5,9 +5,9 @@ from CodeWar.Utils import CodeWar
 # 注意 A B 项 添一项即可, C 项必填
 
 # 创建房间需要设置 (A)
-playernum = 2 # 玩家人数
-row = 20 # 最大不超过100
-col = 20 # 最大不超过100
+playernum = 1 # 玩家人数
+row = 50 # 最大不超过100
+col = 50 # 最大不超过100
 barback = 10 # 兵营
 portal  = 20 # 据点
 barrier = 30 # 障碍物

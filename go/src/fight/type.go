@@ -47,8 +47,8 @@ type (
     fMap struct {
         mu        sync.RWMutex
         roomToken string
-        m1    [default_row][default_col]int
-        m2    [default_row][default_col]byte
+        m1    [default_max_row][default_max_col]int
+        m2    [default_max_row][default_max_col]byte
 
         base, barback, portal, barrier []Point
     }
