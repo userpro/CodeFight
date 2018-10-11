@@ -37,7 +37,8 @@ func NewRoom(userToken string, tPlayerNum int, trow int, tcol int, tbarback int,
         return "Out of limit! Check room config!", Game_failed_response_, false
     }
 
-    if tPlayerNum + tbarback + tportal + tbarrier > trow * tcol { return "Building too many!", Game_failed_response_, false }
+    // 建筑数多余地图 1/2 Cell 过多
+    if tPlayerNum + tbarback + tportal + tbarrier > trow * tcol / 2 { return "Building too many!", Game_failed_response_, false }
 
     // fightLogger.Println("tbarback: ",tbarback)
     // fightLogger.Println("tportal: ",tportal)
