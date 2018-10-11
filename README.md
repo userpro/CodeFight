@@ -6,7 +6,19 @@
 
 ### 游戏介绍
 
-简单的代码操作兵力对战游戏, 受到  [generals.io]() 以及知乎上 Color Fight 启发 .  Go fight! 
+简单的代码对战游戏, 受到  [generals.io]() 以及知乎上 Color Fight 启发 .  Go fight! 
+
+游戏中兵力即 Cell 中的数值, 两个不同阵营的兵力交战时, 结果为相减 .
+
+游戏中有 兵营(barback)、据点(portal)、障碍物(barrier)、基地(base) 四种建筑物
+
+兵营: 间隔较小轮数增加在其中的兵力
+
+据点: 提升据点内兵力的实力 (即在其中的兵力相当于乘以一个因子, 出了据点即失效)
+
+障碍物: 无法通过与摧毁之地
+
+基地: 每个玩家仅一个, 被摧毁即失败
 
 ### 如何测试/运行
 
@@ -25,7 +37,7 @@ python:
 
 ##### 数据库
 
-在 `go/src` 目录下新建文件 `db.txt` 内容格式为 `username;password;tablename`
+在 `go/src` 目录下新建文件 `config.txt` 内容格式为 `dbuser;dbpass;dbtablename;web_server_port`  (⚠️: 第四项是 web 服务器的监听端口)
 
 ```html
 数据库结构:
@@ -46,24 +58,24 @@ git clone https://github.com/userpro/CodeFight.git
 cd CodeFight/go/src
 go run main.go
 python3 gamePlayer1.py
-# 如果需要启动多个 player 测试, 修改 gamePlayer1.py:6 的 playernum 数量和 gamePlayer2.py:9 的roomtoken(需要先启动 gamePlayer1.py 获得)
+# 如果需要启动多个 player 测试, 修改 cleaner.py:6 的 playernum 数量和 cleaner2.py:14 的roomtoken(需要先启动 cleaner.py 获得)
 ```
 
 ### 如何编写自己的Bot
 
-参考 go/src/CodeWar/Utils.py 简单将API封装了一个 class , 简单的主体框架可参考 go/src/gamePlayer1.py
+参考 `go/src/example/CodeWar/Utils.py` 简单将API封装了一个 class , 简单的主体框架可参考 `go/src/example/template.py` , 也可以参考本人写的一个智障障bot `go/src/example/cleaner.py (cleaner2.py是为了演示对战)`
 
-更多游戏环境参数的设置在 go/src/fight/config.go 中
+更多游戏环境参数的设置在 `go/src/fight/config.go` 中
 
 ### Map
 
-地图分两层 `m1,m2`  每个格子就叫Cell吧
+地图分两层 `m1`, `m2`  每个格子就叫Cell吧. (坐标均从左上角开始 包括返回值)
 
-m1存放Cell数值
+`m1`存放Cell数值
 
-m2 存放Cell类型 (低8位有效)
+`m2` 存放Cell类型 (低8位有效)
 
-对于m2:
+对于`m2`:
 
 ```go
 /* 
@@ -156,8 +168,8 @@ e.GET("/room/scoreboard", getScoreBoard)
 | URL        | /room                                                        |
 | 参数       | 加入房间:<br />roomtoken=XXX<br />创建房间:<br />playernum=X&row=X&col=X |
 | 示例       | 加入房间:<br />/room?roomtoken=XXXX<br />创建房间:<br />/room?playernum=X&row=X&col=X |
-| 返回值     | {<br />    "usertoken": "XXX",<br />    "roomtoken": "XXX",<br />    "playernum": "XXX",<br />    "row": XX,<br />    "col":XX,<br />    "message": "XXX",<br />    "status": X<br />} |
-| 返回值说明 | 返回所加入房间的信息                                         |
+| 返回值     | {<br />    "id": X,<br />    "usertoken": "XXX",<br />    "roomtoken": "XXX",<br />    "playernum": "XXX",<br />    "row": XX,<br />    "col":XX,<br />    "barback": XX,<br />    "portal": XX,<br />    "barrier":XX,  <br />    "message": "XXX",<br />    "status": X<br />} |
+| 返回值说明 | 返回所加入房间的信息, <br />id为本局游戏你的id, <br />barback 兵营数量, portal 据点数量, barrier 障碍物数量 |
 
 ###### leave
 
@@ -203,8 +215,8 @@ e.GET("/room/scoreboard", getScoreBoard)
 | URL        | /room/start                                                  |
 | 参数       | usertoken=XXX&roomtoken=XXX                                  |
 | 示例       | /room/start?usertoken=XXX&roomtoken=XXX                      |
-| 返回值     | {<br />    "x": 1,<br />    "y": 2,<br />    "status": 1<br />} |
-| 返回值说明 | x, y 为你初始坐标, 也是你的Base坐标<br /> (注意 x y 仅当 status 为 1 时存在) |
+| 返回值     | {<br />    "x": 1,<br />    "y": 2,<br />    "row": 30,<br />    "col": 30,<br />    "status": 1<br />} |
+| 返回值说明 | x, y 为你初始坐标, 也是你的Base坐标<br />row, col 即 map 尺寸 |
 
 ###### getScoreBoard
 
@@ -226,7 +238,7 @@ e.GET("/room/scoreboard", getScoreBoard)
 
 流程如下:
 
-1. 客户端 send => roomtoken到服务器 (注意 token 是通过模版标签嵌入到页面的)
+1. 客户端 send => roomtoken到服务器 (注意 token 是通过模版标签`{{.}}`嵌入到页面的)
 2. 客户端 receive <=游戏基本信息A( json格式数据)
 3. 客户端 receive <= 每次操作B( json格式数据)
 

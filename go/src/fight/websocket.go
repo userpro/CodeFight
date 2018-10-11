@@ -9,8 +9,8 @@ type (
         Row       int     `json:"row"`
         Col       int     `json:"col"`
         RoomToken string  `json:"roomtoken,omitempty"`
-        M1    *[Default_row][Default_col]int  `json:"m1,omitempty"`
-        M2    *[Default_row][Default_col]byte `json:"m2,omitempty"`
+        M1    *[default_row][default_col]int  `json:"m1,omitempty"`
+        M2    *[default_row][default_col]byte `json:"m2,omitempty"`
 
         UserInfo  []*WSUserInfoRet `json:"userinfo,omitempty"`
     }
@@ -63,6 +63,7 @@ func (ws *WSChannel)WSRegister(token string) chan *WSAction {
 }
 
 func (ws *WSChannel)WSCancel(token string) {
+    defer wsRecovery()
     ch, ok := ws.Ch.Load(token)
     if !ok { return }
     ws.Ch.Delete(token)
@@ -71,8 +72,15 @@ func (ws *WSChannel)WSCancel(token string) {
     ws.count--
 }
 
+func wsRecovery() {
+    if r := recover(); r != nil {
+        fightLogger.Println("[websocket] recovered: ", r)
+    }
+}
+
 func (ws *WSChannel)WSBroadcast(data *WSAction) {
     ws.Ch.Range(func(k, v interface{}) bool {
+        defer wsRecovery()
         _v := v.(chan *WSAction)
         _v <- data
         return true

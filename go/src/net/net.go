@@ -39,12 +39,12 @@ func loginTimeOut(utk string) {
         <- time.After(fight.Default_login_timeout)
         rtk := fight.GetRoom(utk)
         if rtk != "" {
-            _, _, gameStart := fight.IsStart(utk, rtk)
+            _, _, _, _, gameStart := fight.IsStart(utk, rtk)
             if gameStart { continue }
         }
         v, ok := netToken.Load(utk)
         if !ok { return }
-        netOnline.Delete(v.(*netUserInfo).Uname)
+        netOnline.Delete(v.(*netUserInfo).Name)
         netToken.Delete(utk)
         fight.Logout(utk)
         netLogger.Println("loginTimeOutout")
@@ -94,7 +94,9 @@ func login(c echo.Context) error {
             /* 断线重连 */
             utk := _utk.(string)
             user, _ := netToken.Load(utk)
-            return c.JSON(http.StatusOK, &netUserRet{
+            return c.JSON(http.StatusOK, &netUserInfo{
+                Id:        user.(*netUserInfo).Id,
+                Name:      uname,
                 UserToken: user.(*netUserInfo).UserToken,
                 RoomToken: user.(*netUserInfo).RoomToken,
                 RespInfo:  RespInfo { 
@@ -112,7 +114,7 @@ func login(c echo.Context) error {
         utk := fight.GenToken(uname + pwd) // usertoken
         // 维护token信息
         netToken.Store(utk, &netUserInfo {
-            Uname: uname,
+            Name: uname,
             UserToken: utk,
         })
         // netLogger.Println("[login] netToken: ", netToken[usertoken])
@@ -121,7 +123,7 @@ func login(c echo.Context) error {
         fight.Login(utk, uname)
         // 设置登录失效超时
         go loginTimeOut(utk)
-        return c.JSON(http.StatusOK, &netUserRet{
+        return c.JSON(http.StatusOK, &netUserInfo{
             UserToken: utk,
             RespInfo: RespInfo {
                 Message: "Login OK.",
@@ -154,7 +156,7 @@ func logout(c echo.Context) error {
     }
 
     fight.Logout(utk)
-    netOnline.Delete(u.(*netUserInfo).Uname)
+    netOnline.Delete(u.(*netUserInfo).Name)
     netToken.Delete(utk)
     return c.NoContent(http.StatusNoContent)
 }
@@ -168,7 +170,7 @@ func gameLoopBegin(rtk string) {
     // 启动游戏 开一个协程等待游戏结束
     go func(rtk string, teq *eventQ.EventQueue, wsc *fight.WSChannel) {
         ch := fight.Run(rtk, teq, wsc)
-        // 当游戏结束时 回收该房间eventQueue
+        // 当游戏结束时 回收该房间eventQueue WSChannel
         <- ch
         netLogger.Println("Game End....")
         eventQMap.Delete(rtk)
@@ -192,50 +194,56 @@ func join(c echo.Context) error {
     /* 检查roomtoken */
     rtk := c.FormValue("roomtoken")
     if rtk == "" { /* 没有rtk 则新建room */
-        /* 校验参数 */
+        /* 获取参数 */
         playernum, err := strconv.Atoi(c.FormValue("playernum"))
-        if err != nil { playernum = fight.Default_player_num }
-        if playernum > fight.Default_player_num { playernum = fight.Default_player_num }
+        if err != nil { playernum = 0 }
         row, err := strconv.Atoi(c.FormValue("row"))
-        if err != nil { row = fight.Default_row }
-        if row > fight.Default_row { row = fight.Default_row }
+        if err != nil { row = 0 }
         col, err := strconv.Atoi(c.FormValue("col"))
-        if err != nil { col = fight.Default_col }
-        if col > fight.Default_col { col = fight.Default_col }
-        /* 校验参数 */
+        if err != nil { col = 0 }
+        barback, err := strconv.Atoi(c.FormValue("barback"))
+        if err != nil { barback = 0 }
+        portal, err  := strconv.Atoi(c.FormValue("portal"))
+        if err != nil { portal = 0 }
+        barrier, err := strconv.Atoi(c.FormValue("barrier"))
+        if err != nil { barrier = 0 }
+        /* 获取参数 */
         
         /* 创建房间 */
-        joindata, joinstatus, newroomok := fight.NewRoom(utk, playernum, row, col)
-        if newroomok {
-            rtk := joindata.(*fight.JoinRet).RoomToken
-            // 更新netToken
-            nntk.Id = joindata.(*fight.JoinRet).Uid
-            nntk.RoomToken = rtk
-
-            /* 如果NewRoom 返回 RM_playing_ 标志
-                表示 join 后立即开始 */
-            if joinstatus == fight.RM_playing_ {
-                netLogger.Println("[Join] Started!")
-                // 启动游戏
-                gameLoopBegin(rtk)
-            }
-            
-            return c.JSON(http.StatusOK, &netUserRet{
-                UserToken: utk,
-                RoomToken: rtk,
-                RoomOptRet:  RoomOptRet {
-                    Row: row,
-                    Col: col,
-                    Playernum: playernum,
-                },
-                RespInfo: RespInfo {
-                    Message: "Join Room OK!",
-                    Status: 1,
-                },
-            }) 
-        }
+        joindata, joinstatus, newroomok := fight.NewRoom(utk, playernum, row, col, barback, portal, barrier)
         // Join Failed
-        return c.JSON(http.StatusOK, &RespInfo{ Message:joindata.(string), Status:0 })
+        if !newroomok {
+            return c.JSON(http.StatusOK, &RespInfo{ Message:joindata.(string), Status:0 })
+        }
+        data := joindata.(*fight.JoinRet)
+        rtk := data.RoomToken
+        // 更新netToken
+        nntk.Id = data.Id
+        nntk.RoomToken = rtk
+
+        /* 如果NewRoom 返回 RM_playing_ 标志
+            表示 join 后立即开始 */
+        if joinstatus == fight.RM_playing_ {
+            netLogger.Println("[Join] Started!")
+            // 启动游戏
+            gameLoopBegin(rtk)
+        }
+        
+        return c.JSON(http.StatusOK, &netJoinRet{
+            Id:        data.Id,
+            Name:      nntk.Name,
+            UserToken: utk,
+            RoomToken: rtk,
+            
+            Row: row,
+            Col: col,
+            Playernum: playernum,
+
+            RespInfo: RespInfo {
+                Message: "Join Room OK!",
+                Status: 1,
+            },
+        })
     } else {
 
         /* 有rtk 直接加入 */
@@ -249,7 +257,7 @@ func join(c echo.Context) error {
             }
 
             data := joindata.(*fight.JoinRet)
-            id := data.Uid
+            id := data.Id
             playernum := data.PlayerNum
             row := data.Row
             col := data.Col
@@ -257,14 +265,14 @@ func join(c echo.Context) error {
             nntk.Id = byte(id)
             nntk.RoomToken = rtk
             
-            return c.JSON(http.StatusOK, &netUserRet{
+            return c.JSON(http.StatusOK, &netJoinRet{
+                Id:        data.Id,
+                Name:      nntk.Name,
                 UserToken: utk,
                 RoomToken: rtk,
-                RoomOptRet: RoomOptRet{
-                    Row: row,
-                    Col: col,
-                    Playernum: playernum,
-                },
+                Row: row,
+                Col: col,
+                Playernum: playernum,
                 RespInfo: RespInfo{ Status:1 },
             })
         }
@@ -404,10 +412,11 @@ func isStart(c echo.Context) error {
     if rtk == "" { return c.JSON(http.StatusOK, &RespInfo{ Message:"Failed! RoomToken can't empty.", Status:0 }) }
     /* -- 权限检查 -- */
 
-    x, y, ok := fight.IsStart(utk, rtk)
+    baseX, baseY, row, col, ok := fight.IsStart(utk, rtk)
     if !ok { return c.JSON(http.StatusOK, &RespInfo{ Status:0 }) }
     return c.JSON(http.StatusOK, &netStartRet{
-        X:x, Y:y, 
+        X:baseX,  Y:baseY, 
+        Row: row, Col: col,
         RespInfo: RespInfo{ Status: 1 },
     })
 }
@@ -430,17 +439,17 @@ func getScoreBoard(c echo.Context) error {
 
 
 func Run() {
-    _dbtxt, ioerr := ioutil.ReadFile("db.txt")
+    _configtxt, ioerr := ioutil.ReadFile("config.txt")
     if ioerr != nil {
         netLogger.Println(ioerr)
         panic(ioerr)
         return
     }
     var dberr error
-    dbconfig := strings.Split(strings.Trim(string(_dbtxt), "\n"), ";")
-    dbuser := dbconfig[0]
-    dbpass := dbconfig[1]
-    dbname := dbconfig[2]
+    config := strings.Split(strings.Trim(string(_configtxt), "\n"), ";")
+    dbuser := config[0]
+    dbpass := config[1]
+    dbname := config[2]
     dbw = DbWorker{
         Dsn: dbuser + ":" + dbpass + "@tcp(localhost:3306)/" + dbname + "?charset=utf8mb4&parseTime=true&loc=Local",
     }
@@ -478,18 +487,18 @@ func Run() {
     e.GET("/", func(c echo.Context) error {
         return c.Render(http.StatusOK, "index.html", "")
     })
-    e.Logger.Fatal(e.Start(":8080"))
+    e.Logger.Fatal(e.Start(":" + config[3]))
 }
 
 func init() {
-    netlogFile, netlogFileErr := os.OpenFile("netinfo.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+    netlogFile, netlogFileErr := os.OpenFile("netlog.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
     if netlogFileErr != nil {
         panic(netlogFileErr)
         return
     }
     netLogger = log.New(netlogFile, "[net] ", log.Ldate | log.Ltime | log.Lshortfile)
 
-    dbLogFile, dbLogFileErr := os.OpenFile("dbinfo.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+    dbLogFile, dbLogFileErr := os.OpenFile("dblog.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
     if dbLogFileErr != nil {
         panic(dbLogFileErr)
         return

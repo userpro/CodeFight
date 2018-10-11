@@ -20,29 +20,24 @@ var (
     fightLogger    *log.Logger
 )
 
-func NewRoom(userToken string, params ...int) (interface{}, int, bool) {
+func NewRoom(userToken string, tPlayerNum, trow, tcol, tbarback, tportal, tbarrier int) (interface{}, int, bool) {
     _, ok := getUser(userToken)
     if !ok { return "You haven't login.", Game_failed_response_, false }
 
     // 可定制参数: 游戏人数 战场size
-    var tPlayerNum, trow, tcol int
-    if len(params) == 1 {
-        tPlayerNum = params[0]
-        trow = Default_row
-        tcol = Default_col
-    } else if len(params) == 3 {
-        tPlayerNum = params[0]
-        trow = params[1]
-        tcol = params[2]
-    } else {
-        tPlayerNum = Default_player_num
-        trow = Default_row
-        tcol = Default_col
+    if tPlayerNum == 0 { tPlayerNum = default_player_num }
+    if trow == 0 { trow = default_row }
+    if tcol == 0 { tcol = default_col }
+    if tbarback == 0 { tbarback = default_barback }
+    if tportal  == 0 { tportal  = default_portal  }
+    if tbarrier == 0 { tbarrier = default_barrier }
+
+    // 合法性校验
+    if tPlayerNum > default_max_player_num || tPlayerNum <= 0 || trow > default_max_row || tcol > default_max_col || trow < default_min_row || tcol < default_min_col {
+        return "Out of limit! Check room config!", Game_failed_response_, false
     }
 
-    if tPlayerNum > Default_player_num || trow > Default_row || tcol > Default_col {
-        return "Size or player number out of limit!", Game_failed_response_, false
-    }
+    if tPlayerNum + tbarback + tportal + tbarrier > trow * tcol { return "Building too many!", Game_failed_response_, false }
 
     roomToken := GenToken(userToken)
     opt := &fOpts {
@@ -50,6 +45,9 @@ func NewRoom(userToken string, params ...int) (interface{}, int, bool) {
         playerNum: tPlayerNum,
         row: trow,
         col: tcol,
+        barbackNum: tbarback,
+        portalNum:  tportal,
+        barrierNum: tbarrier,
         playing: false,
         userInfo:  make(map[byte]*fUser),
         roomToken: roomToken,
@@ -88,7 +86,7 @@ func Join(userToken, roomToken string) (interface{}, int, bool) {
     status, joinok := opt.join(user)
     if joinok {
         return &JoinRet{
-            Uid: user.id,
+            Id:  user.id,
             PlayerNum: opt.playerNum,
             Row: opt.row,
             Col: opt.col,
@@ -121,12 +119,14 @@ func Logout(userToken string) {
     fUserList.Delete(userToken)
 }
 
+/* 获取玩家所在的房间的roomtoken */
 func GetRoom(userToken string) string {
     user, ok := getUser(userToken)
     if !ok { return "" }
     return user.roomToken
 }
 
+/* 获取得分榜 */
 func GetScoreBoard(roomToken string) (*map[string]int, int, bool) {
     opt, ok := getOpts(roomToken)
     if !ok { 
@@ -139,6 +139,19 @@ func GetScoreBoard(roomToken string) (*map[string]int, int, bool) {
         sb[v.userName] = v.score;
     }
     return &sb, Game_success_response_, true
+}
+
+/* 
+    两种可能 1.游戏人数不够未开始 2.房间不存在
+    (int=>x, int=>y, int=>row, int=>col, bool)
+*/
+func IsStart(userToken, roomToken string) (int, int, int, int, bool) {
+    user, ok := getUser(userToken)
+    if !ok { return -1, -1, -1, -1, false }
+    room, ok := getOpts(roomToken)
+    if !ok { return -1, -1, -1, -1, false }
+    if room.playing { return user.baseLoc.X, user.baseLoc.Y, room.row, room.col, true }
+    return -1, -1, -1, -1, false
 }
 
 func GetEyeShot(userToken, roomToken string, loc Point) (*EyeShot, string, bool) {
@@ -159,6 +172,8 @@ func GetEyeShot(userToken, roomToken string, loc Point) (*EyeShot, string, bool)
         return v, "OK", true
     } else if status == Game_invalid_point_ {
         return nil, "Invalid Point!", false
+    } else if status == Game_not_belong_ {
+        return nil, "Not belong to you!", false
     }
     return nil, "Unknown Error!", false
 }
@@ -186,7 +201,7 @@ func Move(userToken, roomToken string, direction, radio int, loc Point) (*fPoint
     return nil, nil, false
 }
 
-// 重置每轮的查询次数限制
+/* 重置每轮的查询次数限制 */
 func resetQueryCount(tokens []string) {
     for _, v := range tokens {
         _qry, _ := fQueryCountMap.Load(v)
@@ -195,22 +210,26 @@ func resetQueryCount(tokens []string) {
     }
 }
 
-// 清除
+/* 清除查询限制 */
 func clearQueryCount(tokens []string) {
     for _, v := range tokens {
         fQueryCountMap.Delete(v)
     }
 }
 
-// 执行该轮的actionEvent
-func doIt(roomToken string, actions []eventQ.EventEle, wsActions *WSAction) {
+/* 
+    执行该轮的actionEvent
+    并 push 进 wsaction 队列
+*/
+func executeIt(roomToken string, actions []eventQ.EventEle, wsActionsOneLoop *WSAction) {
     if len(actions) <= 0 { return }
     var wsChange WSChange // websocket change数据
+    /* 遍历执行每个action */
     for _, v := range(actions) {
         ac := v.Value.(ActionEvent) // v.Token => usertoken
         switch ac.Typ {
         case Action_move_:
-            // fightLogger.Println("[doIt] Move ", v.Token)
+            // fightLogger.Println("[executeIt] Move ", v.Token)
             aMove := ac.Ac.(ActionMove)
             p1, p2, moveok := Move(v.Token, roomToken, aMove.Direction, aMove.Radio, aMove.Loc)
             if !moveok { continue }
@@ -219,38 +238,38 @@ func doIt(roomToken string, actions []eventQ.EventEle, wsActions *WSAction) {
             wsChange.Loc = append(wsChange.Loc, &WSPoint{ X: p2.x, Y:p2.y, M1:p2.m1, M2:p2.m2 })
 
         // case Action_magic_:
-        //     fightLogger.Println("[doIt] Magic ", v.Token)
+        //     fightLogger.Println("[executeIt] Magic ", v.Token)
         default:
         }
     }
-    wsActions.Typ = WSAction_normal_change
-    wsActions.Value = wsChange
+    wsActionsOneLoop.Typ = WSAction_normal_change
+    wsActionsOneLoop.Value = wsChange
 }
 
 
-// Return Result: 0=>"failed"  1=>"end"
+/* 
+    游戏之心
+    Return Result: 0=>"failed"  1=>"end" 
+*/
 func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
     fightLogger.Println("Run")
     opt, ok1 := getOpts(roomToken)
     if !ok1 { return nil }
     mm := opt.m
 
-    // 设置eventQueue 和 fQueryCount
+    /* 设置eventQueue 和 fQueryCount */
     var tokens []string
     for _, v := range(opt.userInfo) {
         tokens = append(tokens, v.userToken)
-        // 每轮查询最大值
+        // 每轮查询的最大值
         fQueryCountMap.Store(v.userToken, &fQueryCounter{ count: default_max_query })
     }
     eq.Initialize(tokens)
-    // fightLogger.Println("[Run] EventQueue: ", eq)
 
-    // 游戏总时长
-    playTimer := time.NewTicker(default_play_timeout)
-    // 每轮action时间间隔
-    actionTimer := time.NewTicker(default_action_interval)
+    playTimer := time.NewTicker(default_play_timeout) // 游戏总时长
+    actionTimer := time.NewTicker(default_action_interval) // 每轮action时间间隔
 
-    gameEnd := make(chan bool)
+    gameEnd := make(chan bool) // 游戏结束通知channel
 
     go func() {
         defer playTimer.Stop()
@@ -265,55 +284,59 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
             select {            
             case <-actionTimer.C:
                 opt.mu.Lock()
-                
-                var wsActions []*WSAction // websocket时间队列
+
                 loop_cnt++ // 统计游戏共经过几轮操作
                 global_add_cnt++;
+                special_add_cnt++;
+                
+                var wsActionsOneLoop []*WSAction // websocket 操作队列
+                
+                /* 系统行为 */
                 if global_add_cnt >= default_global_add {
                     autoGlobalAdd(opt, mm)
                     global_add_cnt = 0
-                    // 增加websocket
-                    wsActions = append(wsActions, &WSAction{
+                    wsActionsOneLoop = append(wsActionsOneLoop, &WSAction{
                         Typ: WSAction_global_add,
                     })
                 }
-                special_add_cnt++;
                 if special_add_cnt >= default_special_add {
                     autoSpecialAdd(mm)
                     special_add_cnt = 0
-                    // 增加websocket
-                    wsActions = append(wsActions, &WSAction{
+                    wsActionsOneLoop = append(wsActionsOneLoop, &WSAction{
                         Typ: WSAction_special_add,
                     })
                 }
+                /* 系统行为 */
+
                 /* 
-                    如果所有玩家logout造成退出房间 
-                    logout 会造成 usertoken 不一致 而无法重新加入房间
+                    如果玩家 logout 退出房间 
+                    会造成 usertoken 不一致 而无法重新加入房间
                 */
-                if !eq.Empty() { 
-                    // 处理每轮的操作
-                    actions := eq.Get()
+
+                /* 玩家行为 */
+                if !eq.Empty() {
+                    actions := eq.Get() // 每轮的操作列表
                     if len(actions) > 0 {
                         var wsNormalAction WSAction // 普通的change
-                        doIt(roomToken, actions, &wsNormalAction)
-                        wsActions = append(wsActions, &wsNormalAction)
+                        executeIt(roomToken, actions, &wsNormalAction)
+                        wsActionsOneLoop = append(wsActionsOneLoop, &wsNormalAction)
                     }
 
                     if !ws.WSEmpty() {
-                        for _, v := range wsActions {
+                        for _, v := range wsActionsOneLoop {
                             ws.WSBroadcast(v)
                         }
                     }
-
                     resetQueryCount(tokens) // 重设每轮最大查询次数
                 
                 } else { /* 已经没有玩家在房间内 */
                     opt.mu.Unlock()
-                    // 清除查询次数限制
-                    clearQueryCount(tokens)
-                    gameEnd <- true
+                    clearQueryCount(tokens) // 清除查询次数限制
+                    gameEnd <- true // 发送游戏结束信号, 回收WSChannel EventQueue
                     return
                 }
+                /* 玩家行为 */
+
                 opt.mu.Unlock()
 
             default: /* nothing */
@@ -339,9 +362,8 @@ func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
                 }
                 // 清空事件队列
                 eq.Clear()
-                // 清除查询次数限制
-                clearQueryCount(tokens)
-                gameEnd <- true
+                clearQueryCount(tokens) // 清除查询次数限制
+                gameEnd <- true // 发送游戏结束信号, 回收WSChannel EventQueue
                 return
 
             default: /* nothing */
@@ -381,7 +403,7 @@ func WSGetGameInfo(roomToken string) *WSAction {
 }
 
 func init() {
-    flogFile, flogFileErr := os.OpenFile("fightinfo.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
+    flogFile, flogFileErr := os.OpenFile("fightlog.txt", os.O_WRONLY | os.O_CREATE | os.O_APPEND, 0644)
     if flogFileErr != nil {
         panic(flogFileErr)
         return

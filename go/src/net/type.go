@@ -13,24 +13,22 @@ type (
         Status    int    `json:"status"`
     }
 
-    RoomOptRet struct {
-        Row       int    `json:"row"`
-        Col       int    `json:"col"`
-        Playernum   int    `json:"playernum,omitempty"`
-    }
-
     netUserInfo struct {
-        UserToken string
-        RoomToken string
-        Id    byte
-        Uname string
+        Id        byte   `json:"id"`
+        Name      string `json:"name"`
+        UserToken string `json:"usertoken"`
+        RoomToken string `json:"roomtoken"`
         RespInfo
     }
 
-    netUserRet struct {
-        UserToken string `json:"usertoken"`
-        RoomToken string `json:"roomtoken"`
-        RoomOptRet
+    netJoinRet  struct {
+        Id         byte   `json:"id"`
+        Name       string `json:"name"`
+        UserToken  string `json:"usertoken"`
+        RoomToken  string `json:"roomtoken"`
+        Row       int     `json:"row"`
+        Col       int     `json:"col"`
+        Playernum int     `json:"playernum,omitempty"`
         RespInfo
     }
 
@@ -61,6 +59,8 @@ type (
     netStartRet struct {
         X int `json:"x"`
         Y int `json:"y"`
+        Row int `json:"row"`
+        Col int `json:"col"`
         RespInfo
     }
 

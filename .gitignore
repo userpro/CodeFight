@@ -1,5 +1,6 @@
-go/src/CodeWar/__pycache__/*
-go/src/db.txt
-go/src/dbinfo.txt
-go/src/netinfo.txt
-go/src/fightinfo.txt
+go/src/example/CodeWar/__pycache__/*
+go/src/config.txt
+go/src/dblog.txt
+go/src/netlog.txt
+go/src/fightlog.txt
+go/src/main

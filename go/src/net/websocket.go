@@ -1,8 +1,6 @@
 package net
 
 import (
-    // "fmt"
-    "time"
     "net/http"
     "encoding/json"
 
@@ -80,8 +78,6 @@ func wsocketView(c echo.Context) error {
                 wsc.WSCancel(token)
                 return
             }
-
-            time.Sleep(time.Second * 1)
         }
     }).ServeHTTP(c.Response(), c.Request())
     return nil
