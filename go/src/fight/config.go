@@ -54,8 +54,8 @@ const (
     /* 地图尺寸 */
     default_col = 30
     default_row = 30
-    default_max_col = 100
-    default_max_row = 100
+    default_max_col = 100 // 服务器端按最大的建, 实际使用其中一部分
+    default_max_row = 100 // 
     default_min_col = 10
     default_min_row = 10
     /* 地图 portal 数量 */

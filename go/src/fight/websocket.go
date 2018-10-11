@@ -9,8 +9,8 @@ type (
         Row       int     `json:"row"`
         Col       int     `json:"col"`
         RoomToken string  `json:"roomtoken,omitempty"`
-        M1    *[default_row][default_col]int  `json:"m1,omitempty"`
-        M2    *[default_row][default_col]byte `json:"m2,omitempty"`
+        M1    *[default_max_row][default_max_col]int  `json:"m1,omitempty"`
+        M2    *[default_max_row][default_max_col]byte `json:"m2,omitempty"`
 
         UserInfo  []*WSUserInfoRet `json:"userinfo,omitempty"`
     }
