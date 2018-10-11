@@ -57,7 +57,8 @@ python:
 git clone https://github.com/userpro/CodeFight.git
 cd CodeFight/go/src
 go run main.go
-python3 gamePlayer1.py
+cd example
+python3 cleaner.py
 # 如果需要启动多个 player 测试, 修改 cleaner.py:6 的 playernum 数量和 cleaner2.py:14 的roomtoken(需要先启动 cleaner.py 获得)
 ```
 
