@@ -13,7 +13,7 @@ portal  = 20 # 据点
 barrier = 30 # 障碍物
 
 # 加入房间需要设置 (B)
-roomtoken = '816e95209d7b31e8e87e7f7ee707a53a' 
+roomtoken = 'ae3322cd1d8e982f19b736d370a49395' 
 
 # 账号及服务器设置 (C)
 chrome = '' # 对于Windows用户可能需要填写Chrome安装路径.../chrome.exe
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     while True:
         # 游戏已结束
         if not my.isStart():
-            my.getScoreBoard()
+            print(my.getScoreBoard())
             my.leave()
             break
         

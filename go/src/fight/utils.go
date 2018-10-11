@@ -206,6 +206,7 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
             // 更新target cell的兵力和id
             dest.m1 = t1
             dest.m2 = setCellId(destCell, srcUid)
+            destCell = dest.m2 // 更新destCell
             // 更新自己score
             user.score++;
             // 如果是_system_直接改变阵营即可

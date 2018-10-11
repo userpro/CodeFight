@@ -41,6 +41,7 @@ func loginTimeOut(utk string) {
         if rtk != "" {
             _, _, _, _, gameStart := fight.IsStart(utk, rtk)
             if gameStart { continue }
+            fight.LeaveRoom(utk, rtk)
         }
         v, ok := netToken.Load(utk)
         if !ok { return }

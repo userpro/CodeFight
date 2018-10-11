@@ -39,9 +39,9 @@ func NewRoom(userToken string, tPlayerNum int, trow int, tcol int, tbarback int,
 
     if tPlayerNum + tbarback + tportal + tbarrier > trow * tcol { return "Building too many!", Game_failed_response_, false }
 
-    fightLogger.Println("tbarback: ",tbarback)
-    fightLogger.Println("tportal: ",tportal)
-    fightLogger.Println("tbarrier: ",tbarrier)
+    // fightLogger.Println("tbarback: ",tbarback)
+    // fightLogger.Println("tportal: ",tportal)
+    // fightLogger.Println("tbarrier: ",tbarrier)
 
     roomToken := GenToken(userToken)
     opt := &fOpts {

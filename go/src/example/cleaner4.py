@@ -5,21 +5,21 @@ from CodeWar.Utils import CodeWar
 # 注意 A B 项 添一项即可, C 项必填
 
 # 创建房间需要设置 (A)
-playernum = 4 # 玩家人数
-row = 40 # 最大不超过100
-col = 40 # 最大不超过100
-barback = 50 # 兵营
-portal  = 100 # 据点
-barrier = 200 # 障碍物
+playernum = 2 # 玩家人数
+row = 20 # 最大不超过100
+col = 20 # 最大不超过100
+barback = 10 # 兵营
+portal  = 20 # 据点
+barrier = 30 # 障碍物
 
 # 加入房间需要设置 (B)
-roomtoken = '' 
+roomtoken = 'ae3322cd1d8e982f19b736d370a49395' 
 
 # 账号及服务器设置 (C)
 chrome = '' # 对于Windows用户可能需要填写Chrome安装路径.../chrome.exe
-username = 'hipro'
-password = 'okiamhi'
-email = 'test@test'
+username = 'test3'
+password = 'test3'
+email = 'test'
 url = '127.0.0.1'
 port = '52333'
 
@@ -124,7 +124,6 @@ if __name__ == '__main__':
         else:
             x = x + random.randint(-1,1)
             y = y + random.randint(-1,1)
-
 
         time.sleep(0.3)
         ## 以上为策略猪蹄部分 ###
