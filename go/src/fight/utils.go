@@ -203,16 +203,15 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
         if t1 >= t2 {
             t1 -= t2
             if t1 == 0 { t1 = 1 }
-            // 更新target cell的兵力和id
             dest.m1 = t1
-            dest.m2 = setCellId(destCell, srcUid)
-            destCell = dest.m2 // 更新destCell
             // 更新自己score
             user.score++;
-            // 如果是_system_直接改变阵营即可
             if !isSystem(destCell) {
                 // 更新敌人score
                 opt.userInfo[destUid].score--
+                // 更新target cell的兵力和id
+                dest.m2 = setCellId(destCell, srcUid)
+                destCell = dest.m2 // 更新destCell
 
                 if isBase(destCell) { 
                     // base 被占领时会被摧毁
@@ -224,6 +223,10 @@ func (opt *fOpts) move(user *fUser, direction, radio int, src *fPoint) (*fPoint,
                     dest.m2 = setCellType(destCell, _space_)
                     mm.removePortal(Point{ dest.x, dest.y})
                 }
+            } else {
+                // 如果是_system_直接改变阵营即可
+                // 更新target cell的兵力和id
+                dest.m2 = setCellId(destCell, srcUid)
             }
         } else { /* 消耗 */
             dest.m1 -= t1

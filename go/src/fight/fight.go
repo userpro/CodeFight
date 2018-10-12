@@ -257,7 +257,7 @@ func executeIt(roomToken string, actions []eventQ.EventEle, wsActionsOneLoop *WS
     Return Result: 0=>"failed"  1=>"end" 
 */
 func Run(roomToken string, eq *eventQ.EventQueue, ws *WSChannel) chan bool {
-    fightLogger.Println("Run")
+    // fightLogger.Println("Run")
     opt, ok1 := getOpts(roomToken)
     if !ok1 { return nil }
     mm := opt.m

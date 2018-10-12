@@ -5,7 +5,7 @@ from CodeWar.Utils import CodeWar
 # 注意 A B 项 添一项即可, C 项必填
 
 # 创建房间需要设置 (A)
-playernum = 4 # 玩家人数
+playernum = 2 # 玩家人数
 row = 40 # 最大不超过100
 col = 30 # 最大不超过100
 barback = 10 # 兵营
@@ -124,6 +124,10 @@ if __name__ == '__main__':
         else:
             x = x + random.randint(-1,1)
             y = y + random.randint(-1,1)
+            if x<0: x=0
+            if x>=row: x=row-1
+            if y<0: y=0
+            if y>=col: y=col-1
 
 
         time.sleep(0.3)

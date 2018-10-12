@@ -13,7 +13,7 @@ portal  = 20 # 据点
 barrier = 30 # 障碍物
 
 # 加入房间需要设置 (B)
-roomtoken = 'ae3322cd1d8e982f19b736d370a49395' 
+roomtoken = '01c01096d7a6dcfc888569149f888d6f' 
 
 # 账号及服务器设置 (C)
 chrome = '' # 对于Windows用户可能需要填写Chrome安装路径.../chrome.exe
@@ -124,6 +124,10 @@ if __name__ == '__main__':
         else:
             x = x + random.randint(-1,1)
             y = y + random.randint(-1,1)
+            if x<0: x=0
+            if x>=row: x=row-1
+            if y<0: y=0
+            if y>=col: y=col-1
 
         time.sleep(0.3)
         ## 以上为策略猪蹄部分 ###

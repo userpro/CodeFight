@@ -124,6 +124,10 @@ if __name__ == '__main__':
         else:
             x = x + random.randint(-1,1)
             y = y + random.randint(-1,1)
+            if x<0: x=0
+            if x>=row: x=row-1
+            if y<0: y=0
+            if y>=col: y=col-1
 
         time.sleep(0.3)
         ## 以上为策略猪蹄部分 ###
