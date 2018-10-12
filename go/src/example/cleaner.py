@@ -7,10 +7,10 @@ from CodeWar.Utils import CodeWar
 # 创建房间需要设置 (A)
 playernum = 4 # 玩家人数
 row = 40 # 最大不超过100
-col = 40 # 最大不超过100
-barback = 50 # 兵营
-portal  = 100 # 据点
-barrier = 200 # 障碍物
+col = 30 # 最大不超过100
+barback = 10 # 兵营
+portal  = 20 # 据点
+barrier = 20 # 障碍物
 
 # 加入房间需要设置 (B)
 roomtoken = '' 
