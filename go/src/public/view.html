@@ -12,7 +12,6 @@
     html, body, .page{
       height: 100%;
       width: 100%;
-      overflow: hidden;
     }
     .page{
       position: relative;
@@ -144,7 +143,6 @@
     var userinfo = {};    // 用户信息
     var id_color = {};    // id于颜色对应
     var action_queue = [];// 数据更新队列
-    var mark = {}; //统计选手占有的格子数量 包括特殊类型的格子
     var _ROW_ = 0; //有效行
     var _COL_ = 0; //有效列
     function ViewInit(row, col) {
@@ -277,6 +275,20 @@
       }
   }
 
+  //查找User所在下标
+  function searchUserIndex(oldUid,nowUid){
+    let len = userinfo.length;
+    let index = [0,0];
+    for (var i = len-1; i >= 0; i--) {
+      if (userinfo[i]['id']==oldUid){
+        index[0] = i;
+      }
+      if (userinfo[i]['id']==nowUid){
+        index[1] = i;
+      }
+    }
+    return index;
+  }
   </script>
 
   <script>
@@ -300,8 +312,8 @@
     let flag = true;
     ws.onmessage = function(evt) {
       let recvData = JSON.parse(evt.data);
-      // console.log(recvData);
       if (flag) {
+        console.log(recvData);
         flag = false;
         let row = recvData['value']['row'],
             col = recvData['value']['col'];
@@ -324,28 +336,25 @@
         let oldUid = getUserId(m2[cell['x']][cell['y']]);
         let nowUid = getUserId(cell['m2']);
         if (oldUid!==nowUid) {
-          //先看一下键值是否存在
-          if(!mark.hasOwnProperty(oldUid)){
-            mark[oldUid] = 1;
-          }
-          if(!mark.hasOwnProperty(nowUid)){
-            mark[nowUid] = 1;
-          }
+          //先找到对应user的下标
+          let index = searchUserIndex(oldUid,nowUid);
           //如果oldUid==0x00，直接加一
           if (getUserId(m2[cell['x']][cell['y']] == 0x00)) {
-            mark[nowUid] += 1;
+            userinfo[index[1]]['score'] += 1;
           }else{
             //如果oldUid!==0x00，old减一 now加一
-            mark[oldUid] -= 1;
-            mark[nowUid] += 1;
+            if (oldUid!==0x00) {
+              userinfo[index[0]]['score'] -= 1;
+            }
+            userinfo[index[1]]['score'] += 1;
             //如果是基地被占领 cell归敌方所有
             if (isBase(m2[cell['x']][cell['y']])) {
-              mark[oldUid] = 0;
-              mark[nowUid] -= 1;
+              userinfo[index[0]]['score'] = 0;
+              userinfo[index[1]]['score'] -= 1;
               for(let i = 0; i< _ROW_; i++){
                 for(let j = 0; j< _COL_; j++){
                   if (getUserId(m2[i][j])==oldUid) {
-                    mark[nowUid] += 1;
+                    userinfo[index[1]]['score'] += 1;
                     m2[i][j] = changeUserId(m2[i][j],nowUid);
                     drawCellByCat(m2[i][j],i,j,m1[i][j]);
                   }
@@ -410,7 +419,7 @@
 
     //显示玩家分数
     function showMark(){
-      console.log('成绩：',mark);
+      console.log('成绩：',userinfo);
     }
 
   </script>
