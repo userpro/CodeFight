@@ -12,6 +12,7 @@
     html, body, .page{
       height: 100%;
       width: 100%;
+      overflow-y:hidden; 
     }
     .page{
       position: relative;
@@ -69,24 +70,15 @@
   <div class="page">
     <div class="left">
       <h2>积分排行</h2>
-      <div id="mark">
-        <table>
-        <tr><td>#1</td><td>哟西</td></tr>
-        <tr><td>#2</td><td>古道西风瘦马</td></tr>
-        <tr><td>#3</td><td>断肠人在天涯</td></tr>
-        <tr><td>#4</td><td>举头望明月</td></tr>
-        <tr><td>#5</td><td>低头思故乡</td></tr>
-        <tr><td>#6</td><td>一一一</td></tr>
-        <tr><td>#7</td><td>买了佛了那个</td></tr>
-        <tr><td>#8</td><td>oK</td></tr>
-      </table>
+      <div id="score">
+       
       </div>
       <br>
-      <h2>地图缩放</h2>
-      <input type="range" name="range" min="0" max="10" step="0.1" value="0" />
+     <!--  <h2>地图缩放</h2>
+      <input type="range" name="range" min="0" max="10" step="0.1" value="0" /> -->
       <br>
-      <h2>地图区域查看</h2>
-      <p>可以使用键盘上的↑ ↓ ← → 来移动地图，查看隐藏部分。</p>
+      <h2>地图遮挡区域查看</h2>
+      <p>地图获得焦点后，可以使用键盘上的↑ ↓ ← → 来移动地图，查看隐藏部分。</p>
       <br>
       <h2>广告赞助</h2>
       <p>先占个位置</p>
@@ -145,6 +137,7 @@
     var action_queue = [];// 数据更新队列
     var _ROW_ = 0; //有效行
     var _COL_ = 0; //有效列
+    var div_score = document.getElementById("score");
     function ViewInit(row, col) {
       _ROW_ = row;
       _COL_ = col;
@@ -289,6 +282,25 @@
     }
     return index;
   }
+
+  //对象排序
+  var compare = function (prop) {
+    return function (obj1, obj2) {
+        var val1 = obj1[prop];
+        var val2 = obj2[prop];
+        if (!isNaN(Number(val1)) && !isNaN(Number(val2))) {
+            val1 = Number(val1);
+            val2 = Number(val2);
+        }
+        if (val1 < val2) {
+            return -1;
+        } else if (val1 > val2) {
+            return 1;
+        } else {
+            return 0;
+        }            
+    } 
+}
   </script>
 
   <script>
@@ -419,7 +431,15 @@
 
     //显示玩家分数
     function showMark(){
-      console.log('成绩：',userinfo);
+      //按分数排序输出
+      let temp = userinfo.sort(compare("score"));
+
+      let html = "<table>";
+      for (var i = temp.length - 1; i >= 0; i--) {
+        html += "<tr><td><h3 style='color:"+id_color[temp[i]['id']]+"'>"+temp[i]['name'] +"</h3></td><td>"+temp[i]['score']+"</td></tr>";
+      }
+      html += "</table>";
+      div_score.innerHTML = html;
     }
 
   </script>
