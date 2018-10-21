@@ -315,7 +315,7 @@ class CodeWar(object):
         while not self.isStart():
             time.sleep(3)
             cnt = cnt + 1
-            if cnt == 40: # 两分钟
+            if cnt == 200: # 十分钟
                 print("超时未开始")
                 self.leave()
                 return False

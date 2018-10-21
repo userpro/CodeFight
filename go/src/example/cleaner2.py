@@ -122,8 +122,8 @@ if __name__ == '__main__':
 
         # 当出现对战 丢失Cell(x, y)控制权的时候 随机找周围的视野
         else:
-            x = x + random.randint(-1,1)
-            y = y + random.randint(-1,1)
+            x = x + random.randint(-5,5)
+            y = y + random.randint(-5,5)
             if x<0: x=0
             if x>=row: x=row-1
             if y<0: y=0
