@@ -1,9 +1,9 @@
 package main
 
 import (
-    netApi "./net"
+	netApi "./net"
 )
 
 func main() {
-    netApi.Run()
+	netApi.Run()
 }
